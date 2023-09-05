@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <stdfloat>
+
 namespace Xroads
 {
     using u8 = uint8_t;
@@ -12,4 +15,6 @@ namespace Xroads
     using i64 = int64_t;
     using f32 = float;
     using f64 = double;
+    using f16 = std::float16_t;
+    using bf16 = std::bfloat16_t;
 }

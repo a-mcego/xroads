@@ -1,5 +1,5 @@
 # xroads
-C++2b utility classes for developing a game engine. To use, add xroads_impl.cpp to your project.
+C++23 utility classes for developing a game engine. To use, add all .cpp files from the src/ directory to your project. The rendering parts require GLFW and OpenGL.
 
 ## Coding standards
 
@@ -14,6 +14,12 @@ Use Allman brace syntax:
 ```cpp
 i32 function(i32 param)
 {
-	return param*2;
+    return param*2;
 }
 ```
+
+Use four spaces for indentation, no tabs.
+
+## Licence
+
+Everything except for glad is GPL3 licenced.

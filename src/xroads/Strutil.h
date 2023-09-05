@@ -2,9 +2,37 @@
 
 #include <sstream>
 #include <string>
+#include <cstring>
 
 namespace Xroads
 {
+    struct CharPtrStr
+    {
+        char* data=nullptr;
+
+        CharPtrStr()
+        {
+            data = new char[1];
+            data[0] = '\0';
+        }
+
+        CharPtrStr& operator+=(const CharPtrStr& rhs)
+        {
+            size_t len = strlen(data);
+            size_t rhslen = strlen(rhs.data);
+            char* newdata = new char[len+rhslen+1];
+            for(size_t i=0; i<len; ++i)
+                newdata[i] = data[i];
+            for(size_t i=0; i<rhslen; ++i)
+                newdata[rhslen+i] = rhs.data[i];
+            newdata[len+rhslen] = '\0';
+            delete [] data;
+            data = newdata;
+            return *this;
+        }
+    };
+
+
     inline const std::vector<std::string> Explode(const std::string& s, const char& c)
     {
         std::string buff{""};

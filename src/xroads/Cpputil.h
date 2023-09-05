@@ -15,7 +15,7 @@ namespace Xroads
             changed = (changed || (data_ != data));
             data = data_;
         }
-        T Get()
+        const T& Get()
         {
             return data;
         }
@@ -66,15 +66,15 @@ namespace Xroads
 
     struct MinMaxCoord
     {
-        MaxValue<float> maxy, maxx;
-        MinValue<float> miny, minx;
+        MaxValue<float> maxx, maxy;
+        MinValue<float> minx, miny;
 
         void Add(const Coord2D<float>& f)
         {
-            maxy.Set(f.y);
-            miny.Set(f.y);
             maxx.Set(f.x);
             minx.Set(f.x);
+            maxy.Set(f.y);
+            miny.Set(f.y);
         }
     };
 
