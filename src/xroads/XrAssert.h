@@ -1,9 +1,11 @@
 #pragma once
 
 #include <iostream>
-
 namespace Xroads
 {
+    void DieWithTrace();
+
+
     //this removes the path from __FILE__ so my output doesn't get polluted
     inline consteval int WranglePath(const char* c)
     {
@@ -17,5 +19,6 @@ namespace Xroads
         }
         return last_slash+1;
     }
-    #define XrAssert(x,op,y) (((x) op (y))?(void)0:(std::cerr << "Assert failed in " << (__FILE__+WranglePath(__FILE__)) << ":" << __LINE__ << ": " << #x << #op << #y << ", with " << (x) << #op << (y) << std::endl, std::abort()))
+#define XrAssert(x,op,y) (((x) op (y))?(void)0:(std::cerr << "Assert failed in " << (__FILE__+Xroads::WranglePath(__FILE__)) << ":" << __LINE__ << ": " << #x << #op << #y << ", with " << (x) << #op << (y) << std::endl, std::abort()))
+//#define XrAssert(x,op,y) (((x) op (y))?(void)0:(std::cerr << "Assert failed in " << (__FILE__+WranglePath(__FILE__)) << ":" << __LINE__ << ": " << #x << #op << #y << ", with " << (x) << #op << (y) << std::endl << "Stacktrace: " << std::to_string(std::stacktrace::current()) << std::endl, std::abort()))
 }

@@ -73,12 +73,6 @@ namespace Xroads
 #undef implement_op
         Coord3D operator-() const { Coord3D ret = *this; ret.x = -x, ret.y = -y, ret.z = -z; return ret; }
 
-        Coord3D Normalize() const
-        {
-            Coord3D t = *this;
-            t /= Length();
-            return t;
-        }
         T Length() const
         {
             return std::sqrt(x*x+y*y+z*z);
@@ -89,13 +83,13 @@ namespace Xroads
             return x*x+y*y+z*z;
         }
 
-        Coord3D Normalize()
+        Coord3D Normalize() const
         {
             Coord3D t = *this;
             return t / Length();
         }
 
-        Coord3D Cross(const Coord3D& rhs)
+        Coord3D Cross(const Coord3D& rhs) const
         {
             return Coord3D
             {
@@ -104,7 +98,7 @@ namespace Xroads
                 x * rhs.y - y * rhs.x
             };
         }
-        T Dot(const Coord3D& rhs)
+        T Dot(const Coord3D& rhs) const
         {
             return x*rhs.x+y*rhs.y+z*rhs.z;
         }

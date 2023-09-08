@@ -65,6 +65,21 @@ namespace Xroads
     //MakeStrong(ModelID, u64);
     using ModelID = u64;
 
+
+    //this struct changes the bf16 type to float so we can use bf16 with opengl
+    //used in the Uniform function
+    template<typename TYPE>
+    struct ToOpenglType
+    {
+        using T = TYPE;
+    };
+    template<>
+    struct ToOpenglType<bf16>
+    {
+        using T = float;
+    };
+
+
     struct Renderer
     {
         enum struct CAMERA
@@ -329,9 +344,9 @@ namespace Xroads
 
             static_assert(!(std::is_same_v<T,glm::mat4> && sizeof...(Ts) != 1), "if passing a matrix, only pass one");
 
-            std::array<T,SIZE> arr;
+            std::array<typename ToOpenglType<T>::T,SIZE> arr;
             int index=0;
-            ((arr.at(index) = data, ++index),...);
+            ((arr[index] = data, ++index),...);
             if constexpr(std::is_same_v<T,int>)
             {
                 if constexpr(SIZE == 1)
@@ -576,12 +591,7 @@ namespace Xroads
                 Uniform(bf,"flash",flash_color.r,flash_color.g,flash_color.b,flash_amount);
                 glClear(GL_DEPTH_BUFFER_BIT);
                 renderQuad();
-
             }
-
-
-
-
 
             glBindVertexArray(vertexarray_id);
             ChangeBuffer(vertexbuffer_id);
