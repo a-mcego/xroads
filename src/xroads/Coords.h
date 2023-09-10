@@ -11,10 +11,10 @@ namespace Xroads
     {
         T x{}, y{};
 #define implement_op(OP)\
-     Coord2D& operator OP ## = (const Coord2D& rhs) { x OP ## = rhs.x, y OP ## = rhs.y; return *this; }\
-     Coord2D operator OP (const Coord2D& rhs) const { Coord2D ret = *this; ret OP ## = rhs; return ret; } \
-     Coord2D& operator OP ## = (const T& rhs) { x OP ## = rhs, y OP ## = rhs; return *this; }\
-     Coord2D operator OP (const T& rhs) const { Coord2D ret = *this; ret OP ## = rhs; return ret; }
+     constexpr Coord2D& operator OP ## = (const Coord2D& rhs) { x OP ## = rhs.x, y OP ## = rhs.y; return *this; }\
+     constexpr Coord2D operator OP (const Coord2D& rhs) const { Coord2D ret = *this; ret OP ## = rhs; return ret; } \
+     constexpr Coord2D& operator OP ## = (const T& rhs) { x OP ## = rhs, y OP ## = rhs; return *this; }\
+     constexpr Coord2D operator OP (const T& rhs) const { Coord2D ret = *this; ret OP ## = rhs; return ret; }
 
         implement_op(+);
         implement_op(-);
