@@ -19,9 +19,7 @@ namespace Xroads
         ret.assign(filesize, 0);
 
         if (fread(ret.data(), filesize, 1, filu) != 1)
-        {
             ret.clear();
-        }
 
         fclose(filu);
         return ret;

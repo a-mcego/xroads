@@ -25,7 +25,6 @@ namespace Xroads
         return RandomNormal(a,b,sigma).first;
     }
 
-
     std::mt19937 generator;
     std::uniform_int_distribution<u32> distribution;
 
@@ -59,6 +58,4 @@ namespace Xroads
     {
         return RandomDouble()*(high-low)+low;
     }
-
 }
-

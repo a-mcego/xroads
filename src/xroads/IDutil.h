@@ -1,6 +1,3 @@
-#ifndef HEADER_C31560B0487FE246
-#define HEADER_C31560B0487FE246
-
 #pragma once
 
 namespace Xroads
@@ -21,5 +18,3 @@ namespace Xroads
     template<typename T>
     T RunningID<T>::current = T{0};
 }
-#endif // header guard 
-
