@@ -23,7 +23,7 @@ namespace Xroads
         implement_op(%);
 
 #undef implement_op
-        Coord2D operator-() const { Coord2D ret = *this; ret.x = -x, ret.y = -y; return ret; }
+        constexpr Coord2D operator-() const { Coord2D ret = *this; ret.x = -x, ret.y = -y; return ret; }
 
         T Length() const
         {
@@ -60,10 +60,10 @@ namespace Xroads
         T x{}, y{}, z{};
 
 #define implement_op(OP)\
-     Coord3D& operator OP ## = (const Coord3D& rhs) { x OP ## = rhs.x, y OP ## = rhs.y, z OP ## = rhs.z; return *this; }\
-     Coord3D operator OP (const Coord3D& rhs) const { Coord3D ret = *this; ret OP ## = rhs; return ret; } \
-     Coord3D& operator OP ## = (const T& rhs) { x OP ## = rhs, y OP ## = rhs, z OP ## = rhs; return *this; }\
-     Coord3D operator OP (const T& rhs) const { Coord3D ret = *this; ret OP ## = rhs; return ret; }
+     constexpr Coord3D& operator OP ## = (const Coord3D& rhs) { x OP ## = rhs.x, y OP ## = rhs.y, z OP ## = rhs.z; return *this; }\
+     constexpr Coord3D operator OP (const Coord3D& rhs) const { Coord3D ret = *this; ret OP ## = rhs; return ret; } \
+     constexpr Coord3D& operator OP ## = (const T& rhs) { x OP ## = rhs, y OP ## = rhs, z OP ## = rhs; return *this; }\
+     constexpr Coord3D operator OP (const T& rhs) const { Coord3D ret = *this; ret OP ## = rhs; return ret; }
 
         implement_op(+);
         implement_op(-);
@@ -71,7 +71,7 @@ namespace Xroads
         implement_op(/);
 
 #undef implement_op
-        Coord3D operator-() const { Coord3D ret = *this; ret.x = -x, ret.y = -y, ret.z = -z; return ret; }
+        constexpr Coord3D operator-() const { Coord3D ret = *this; ret.x = -x, ret.y = -y, ret.z = -z; return ret; }
 
         T Length() const
         {
@@ -120,13 +120,13 @@ namespace Xroads
         }
 
         //TODO: rename this to be more descriptive
-        Coord2D<T> GetAmount(const Coord2D<T>& amount)
+        Coord2D<T> GetAmount(const Coord2D<T>& amount) const
         {
             return topleft*(-amount+1.0f) + bottomright*amount;
         }
 
         //TODO:
-        Coord2D<T> GetRelativeCoords(const Coord2D<T>& coords)
+        Coord2D<T> GetRelativeCoords(const Coord2D<T>& coords) const
         {
             return (coords-topleft)/(bottomright-topleft);
         }
