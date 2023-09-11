@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include "xroads/Shapes.h"
+
 namespace Xroads
 {
     const std::array<u32,256> DEFAULT_PALETTE = {
@@ -57,8 +59,6 @@ namespace Xroads
         ret += u32(c[3])<<24;
         return ret;
     }
-
-    #include "xroads/Shapes.h"
 
     enum struct CENTERING
     {
