@@ -3,6 +3,14 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include "Coords.h"
+
+//TODO: should this be moved somewhere else?
+inline std::ostream& operator<<(std::ostream& o, const Xroads::C3i& v)
+{
+    o << "(" << v.x << "," << v.y << "," << v.z << ")";
+    return o;
+}
 
 namespace Xroads
 {
