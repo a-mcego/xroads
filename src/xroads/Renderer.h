@@ -99,7 +99,7 @@ namespace Xroads
             N
         };
 
-        static constexpr CAMERA STAGE_TO_CAMERA[int(STAGE::N)] = {CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::ORTHO};
+        static constexpr CAMERA STAGE_TO_CAMERA[i32(STAGE::N)] = {CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::ORTHO};
 
         struct RenderList
         {
@@ -107,14 +107,14 @@ namespace Xroads
             std::vector<Vertex> vertices;
         };
 
-        static std::array<std::vector<RenderList>,int(STAGE::N)> renderlists;
+        static std::array<std::vector<RenderList>,i32(STAGE::N)> renderlists;
 
         struct LightDef
         {
             C3 pos;
             Color color;
-            float linear{};
-            float quadratic{};
+            f32 linear{};
+            f32 quadratic{};
         };
         static i32 n_lights_last_frame;
         static std::array<std::vector<LightDef>,3> lights;
@@ -123,21 +123,21 @@ namespace Xroads
             lights.at(priority).push_back({pos, color*2.0f, linear*0.1f, quadratic*0.01f});
         }
         static Color flash_color;
-        static float flash_amount;
-        static void Flash(Color color, float amount)
+        static f32 flash_amount;
+        static void Flash(Color color, f32 amount)
         {
             flash_color = color;
             flash_amount = amount;
         }
 
-        static int trianglecount;
-        static int searches, getvecs;
+        static i32 trianglecount;
+        static i32 searches, getvecs;
 
         static const u32 MAX_VERTICES_PER_FRAME = (1<<20);
 
         static GLuint vertexarray_id, vertexbuffer_id;
 
-        static std::array<glm::mat4,int(CAMERA::N)> Vs, Ps; //transforms for each camera
+        static std::array<glm::mat4,i32(CAMERA::N)> Vs, Ps; //transforms for each camera
 
 
         struct Model
@@ -179,7 +179,7 @@ namespace Xroads
                         vertices.push_back(v);
                         if (v_i%3 == 2)
                         {
-                            int last = vertices.size()-1;
+                            i32 last = vertices.size()-1;
                             auto normal = TriangleNormal(vertices[last-2],vertices[last-1],vertices[last]);
 
                             vertices[last-2].nx = normal.x;
@@ -198,7 +198,7 @@ namespace Xroads
                     }
                 }
 
-                int n_vertices = vertices.size();
+                i32 n_vertices = vertices.size();
                 glGenBuffers(1, &vertexbuffer);
                 glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
                 glBufferData(GL_ARRAY_BUFFER, n_vertices*sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
@@ -231,10 +231,10 @@ namespace Xroads
         static void ChangeBuffer(int buffer_id)
         {
             glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(0 * sizeof(float)));
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(7 * sizeof(float)));
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(float)));
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(0 * sizeof(f32)));
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(f32)));
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(7 * sizeof(f32)));
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(f32)));
         }
 
         static void Init()
@@ -261,7 +261,7 @@ namespace Xroads
         }
         static void SetP(CAMERA camera, const glm::mat4& mat)
         {
-            Ps[int(camera)] = mat;
+            Ps[i32(camera)] = mat;
         }
 
         static void Quit()
@@ -272,7 +272,7 @@ namespace Xroads
         static std::vector<Vertex>& GetVec(STAGE stage, GLuint texture, GLuint shader)
         {
             getvecs += 1;
-            auto& stage_lists = renderlists[int(stage)];
+            auto& stage_lists = renderlists[i32(stage)];
 
             for(auto& stage_list: stage_lists)
             {
@@ -284,7 +284,6 @@ namespace Xroads
             }
 
             //not found, add.
-
             stage_lists.push_back(RenderList{ .texture = texture, .shader = shader, .vertices{} });
             return stage_lists.back().vertices;
         }
@@ -390,8 +389,6 @@ namespace Xroads
         static GLuint gBuffer, gPosition, gNormal, gColorSpec, rboDepth, gAlbedoSpec, gBright, gNormalOut, fbSecond;
         static void Render()
         {
-
-
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
