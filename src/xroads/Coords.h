@@ -73,6 +73,12 @@ namespace Xroads
 #undef implement_op
         constexpr Coord3D operator-() const { Coord3D ret = *this; ret.x = -x, ret.y = -y, ret.z = -z; return ret; }
 
+        constexpr bool operator==(const Coord3D& rhs) const
+        {
+            return x==rhs.x && y==rhs.y && z == rhs.z;
+        }
+
+
         T Length() const
         {
             return std::sqrt(x*x+y*y+z*z);
