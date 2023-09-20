@@ -35,9 +35,18 @@ namespace Xroads
         std::abort();
     }
 
-    inline i64 Cloque()
+    struct CloqueVal
     {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        i64 n{};
+
+        CloqueVal operator+(const CloqueVal& rhs) const { return {n+rhs.n}; }
+        CloqueVal operator-(const CloqueVal& rhs) const { return {n-rhs.n}; }
+
+        auto operator<=>(const CloqueVal&) const = default;
+    };
+    inline CloqueVal Cloque()
+    {
+        return {std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()};
     }
 }
 
