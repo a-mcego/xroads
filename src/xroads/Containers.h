@@ -213,6 +213,13 @@ namespace Xroads
     template<typename T, typename ENUM>
     struct EnumArray
     {
+        std::strong_ordering operator<=>(const EnumArray& c) const
+        {
+            for(int i=0; i<arr.size(); ++i)
+                if (auto cmp_result = (arr[i] <=> c.arr[i]); cmp_result != 0)
+                    return cmp_result;
+            return std::strong_ordering::equal;
+        }
         std::array<T, std::size_t(ENUM::N)> arr{};
         T& operator[](ENUM index) { return arr[size_t(index)]; }
         const T& operator[](ENUM index) const { return arr[size_t(index)]; }
