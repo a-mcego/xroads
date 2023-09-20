@@ -116,11 +116,11 @@ namespace Xroads
             float linear{};
             float quadratic{};
         };
-        static int n_lights_last_frame;
-        static std::vector<LightDef> lights;
-        static void QueueLight(const C3& pos, const Color& color, float linear, float quadratic)
+        static i32 n_lights_last_frame;
+        static std::array<std::vector<LightDef>,3> lights;
+        static void QueueLight(int priority, const C3& pos, const Color& color, f32 linear, f32 quadratic)
         {
-            lights.push_back({pos, color*2.0f, linear*0.1f, quadratic*0.01f});
+            lights.at(priority).push_back({pos, color*2.0f, linear*0.1f, quadratic*0.01f});
         }
         static Color flash_color;
         static float flash_amount;
@@ -512,13 +512,32 @@ namespace Xroads
 
             Uniform(deferred_program_id, "aberration", aberration);
 
+            auto GetLightAmount = []()->int
+            {
+                int total=0;
+                for(auto& l: lights)
+                    total += l.size();
+                return total;
+            };
 
-            int N_MAX_LIGHTS = 96;
+            auto GetLight = [](int index)->LightDef&
+            {
+                for(auto& l: lights)
+                {
+                    if (index < l.size())
+                        return l[index];
+                    index -= l.size();
+                }
+                std::unreachable();
+            };
+
+            const int N_MAX_LIGHTS = 96;
             // send light relevant uniforms
             Uniform(deferred_program_id, "Vs", Vs[int(CAMERA::PERSPECTIVE)]);
-            for (unsigned int i = 0; i < Min((unsigned long long)(N_MAX_LIGHTS),lights.size()); i++)
+            n_lights_last_frame = 0;
+            for (unsigned int i = 0; i < Min(N_MAX_LIGHTS,GetLightAmount()); i++)
             {
-                auto& light = lights[i];
+                auto& light = GetLight(i);
                 Uniform(deferred_program_id, "lights[" + std::to_string(i) + "].Position", light.pos.x, light.pos.y, light.pos.z);
                 Uniform(deferred_program_id, "lights[" + std::to_string(i) + "].Color", light.color.r, light.color.g, light.color.b);
                 //const float linear = 0.7f;
@@ -531,11 +550,12 @@ namespace Xroads
                 // update attenuation parameters and calculate radius
                 //shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
                 //shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
+                ++n_lights_last_frame;
             }
-            Uniform(deferred_program_id, "n_lights", int(Min((unsigned long long)(N_MAX_LIGHTS),lights.size())));
+            Uniform(deferred_program_id, "n_lights", Min(N_MAX_LIGHTS,GetLightAmount()));
             //shaderLightingPass.setVec3("viewPos", camera.Position);
-            n_lights_last_frame = lights.size();
-            lights.clear();
+            for(auto& l: lights)
+                l.clear();
             // finally render quad
             renderQuad();
 

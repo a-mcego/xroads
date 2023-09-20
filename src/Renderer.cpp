@@ -18,7 +18,7 @@ namespace Xroads
     Xr::Color Renderer::flash_color{};
 
     std::array<std::vector<Renderer::RenderList>,int(Renderer::STAGE::N)> Renderer::renderlists;
-    std::vector<Renderer::LightDef> Renderer::lights;
+    std::array<std::vector<Renderer::LightDef>,3> Renderer::lights;
 
     map<ModelID, vector<std::pair<Xr::Color,glm::mat4>>> Renderer::modelqueue;
     array<glm::mat4,int(Renderer::CAMERA::N)> Renderer::Vs, Renderer::Ps;
