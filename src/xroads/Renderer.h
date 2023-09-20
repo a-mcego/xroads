@@ -149,25 +149,27 @@ namespace Xroads
             Model(const VoxModel& vm, const Sprite& sprite_):sprite(sprite_)
             {
                 auto& quads = vm.quads;
+                auto& uvs = vm.uvs;
                 auto& colors = vm.colors;
 
                 XrAssert(quads.size(), ==, colors.size());
 
-                for(int q_i=0; q_i<quads.size(); ++q_i)
+                for(i32 q_i=0; q_i<quads.size(); ++q_i)
                 {
                     auto& quad = quads[q_i];
+                    auto& uv = uvs[q_i];
                     auto& color = colors[q_i];
                     auto verts = quad.GetVertices(sprite);
 
-                    for(int v_i=0; v_i<verts.size(); ++v_i)
+                    for(i32 v_i=0; v_i<verts.size(); ++v_i)
                     {
                         Vertex v;
 
                         v.x = verts[v_i].x;
-                        v.y = verts[v_i].y; //swap y and z and handedness
-                        v.z = verts[v_i].z; //swap y and z and handedness
-                        v.u = verts[v_i].u;
-                        v.v = verts[v_i].v;
+                        v.y = verts[v_i].y;
+                        v.z = verts[v_i].z;
+                        v.u = uv[v_i].x;
+                        v.v = uv[v_i].y;
 
                         v.r = color.r;
                         v.g = color.g;
@@ -209,21 +211,21 @@ namespace Xroads
         static std::vector<Model> models;
         static std::map<std::string, ModelID> model_ids;
 
-        static ModelID GetModelID(const std::string& modelname)
+        static ModelID GetModelID(const std::string& modelname, const GLuint texture_id)
         {
             if (model_ids.contains(modelname))
                 return model_ids[modelname];
             VoxModel vm = VoxLoader::Load(modelname, CENTERING::XYZ);
-            Model m = Model(vm, Sprite{Textures::Get("white")});
+            Model m = Model(vm, Sprite{texture_id});
             models.push_back(m);
             model_ids[modelname] = ModelID{models.size()-1};
             return ModelID{models.size()-1};
         }
 
         static std::map<ModelID, std::vector<std::pair<Color,glm::mat4>>> modelqueue;
-        static void Queue(const std::string& modelname, const glm::mat4& M_matrix, const Color& color)
+        static void Queue(const std::string& modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
         {
-            modelqueue[GetModelID(modelname)].push_back(std::make_pair(color,M_matrix));
+            modelqueue[GetModelID(modelname, texture_id)].push_back(std::make_pair(color,M_matrix));
         }
 
         static void ChangeBuffer(int buffer_id)

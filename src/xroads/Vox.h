@@ -67,6 +67,7 @@ namespace Xroads
     struct VoxModel
     {
         std::vector<GeneralQuad> quads;
+        std::vector<std::vector<C2>> uvs;
         std::vector<Color> colors;
 
         Color ToColor(u32 color)
@@ -99,6 +100,25 @@ namespace Xroads
 
             quads.clear();
             colors.clear();
+            uvs.clear();
+
+            auto MakeUV = [this](const auto& verts)
+            {
+                uvs.push_back(std::vector<C2>());
+                auto& uvback = uvs.back();
+                for(const auto& vert: verts)
+                {
+                    C2 uv{};
+
+                    uv += C2{1.0f,0.0f}*vert.x;
+                    uv += C2{0.0f,1.0f}*vert.y;
+                    uv += C2{0.71f,0.71f}*vert.z;
+
+                    uv *= 0.3f;
+
+                    uvback.push_back(uv);
+                }
+            };
 
 
             for(int z=0; z<size.z; ++z)
@@ -110,47 +130,59 @@ namespace Xroads
                         if (Get({x,y,z}) == 0)
                             continue;
 
-                        Color current_color = ToColor(palette[Get({x,y,z})-2]);
+                        int current_palette_id = Get({x,y,z})-2;
+                        Color current_color = ToColor(palette[current_palette_id]);
 
                         if (Get({x-1,y,z}) == 0)
                         {
-                            C3 midpoint = C3{float(x), float(y)+0.5f, float(z)+0.5f} / maxs - offset;
-                            quads.push_back({midpoint, 1.0f/maxs, {0.0f,-1.0f,0.0f}, {0.0f,0.0f,1.0f}});
+                            C3 midpoint = C3{float(x), float(y)+0.5f, float(z)+0.5f};
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,-1.0f,0.0f}, {0.0f,0.0f,1.0f}});
                             colors.push_back(current_color);
+                            MakeUV(quads.back().GetVertices(Sprite{}));
                         }
                         if (Get({x+1,y,z}) == 0)
                         {
-                            C3 midpoint = C3{float(x+1), float(y)+0.5f, float(z)+0.5f} / maxs - offset;
-                            quads.push_back({midpoint, 1.0f/maxs, {0.0f,1.0f,0.0f}, {0.0f,0.0f,1.0f}});
+                            C3 midpoint = C3{float(x+1), float(y)+0.5f, float(z)+0.5f};
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,1.0f,0.0f}, {0.0f,0.0f,1.0f}});
                             colors.push_back(current_color);
+                            MakeUV(quads.back().GetVertices(Sprite{}));
                         }
-
                         if (Get({x,y-1,z}) == 0)
                         {
-                            C3 midpoint = C3{float(x)+0.5f, float(y), float(z)+0.5f} / maxs - offset;
-                            quads.push_back({midpoint, 1.0f/maxs, {0.0f,0.0f,-1.0f}, {1.0f,0.0f,0.0f}});
+                            C3 midpoint = C3{float(x)+0.5f, float(y), float(z)+0.5f};
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,0.0f,-1.0f}, {1.0f,0.0f,0.0f}});
                             colors.push_back(current_color*0.92f);
+                            MakeUV(quads.back().GetVertices(Sprite{}));
                         }
                         if (Get({x,y+1,z}) == 0)
                         {
-                            C3 midpoint = C3{float(x)+0.5f, float(y+1), float(z)+0.5f} / maxs - offset;
-                            quads.push_back({midpoint, 1.0f/maxs, {0.0f,0.0f,1.0f}, {1.0f,0.0f,0.0f}});
+                            C3 midpoint = C3{float(x)+0.5f, float(y+1), float(z)+0.5f};
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,0.0f,1.0f}, {1.0f,0.0f,0.0f}});
                             colors.push_back(current_color*0.92f);
+                            MakeUV(quads.back().GetVertices(Sprite{}));
                         }
                         if (Get({x,y,z-1}) == 0)
                         {
-                            C3 midpoint = C3{float(x)+0.5f, float(y)+0.5f, float(z)} / maxs - offset;
-                            quads.push_back({midpoint, 1.0f/maxs, {-1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}});
+                            C3 midpoint = C3{float(x)+0.5f, float(y)+0.5f, float(z)};
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {-1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}});
                             colors.push_back(current_color*0.84f);
+                            MakeUV(quads.back().GetVertices(Sprite{}));
                         }
                         if (Get({x,y,z+1}) == 0)
                         {
-                            C3 midpoint = C3{float(x)+0.5f, float(y)+0.5f, float(z+1)} / maxs - offset;
-                            quads.push_back({midpoint, 1.0f/maxs, {1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}});
+                            C3 midpoint = C3{float(x)+0.5f, float(y)+0.5f, float(z+1)};
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}});
                             colors.push_back(current_color*0.84f);
+                            MakeUV(quads.back().GetVertices(Sprite{}));
                         }
                     }
                 }
+            }
+
+            for(Color& c: colors)
+            {
+                Color total = Color{0.5f,0.2960f,0.2568f}*c.r + Color{0.2568f,0.5f,0.2568f}*c.g + Color{0.2568f,0.2960f,0.5f}*c.b;
+                c = total*(1.0f/1.5f);
             }
         }
 
