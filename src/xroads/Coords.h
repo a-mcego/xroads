@@ -116,6 +116,19 @@ namespace Xroads
     {
         Coord2D<T> topleft, bottomright;
 
+        static Rect2D MakeBoundingBox(const Coord2D<T>& coord1, const Coord2D<T>& coord2)
+        {
+            Rect2D ret{coord1,coord1};
+
+            ret.topleft.x = Min(ret.topleft.x, coord2.x);
+            ret.topleft.y = Min(ret.topleft.y, coord2.y);
+
+            ret.bottomright.x = Max(ret.bottomright.x, coord2.x);
+            ret.bottomright.y = Max(ret.bottomright.y, coord2.y);
+
+            return ret;
+        }
+
         bool is_inside(const Coord2D<T>& c) const
         {
             if (c.x < topleft.x or c.x > bottomright.x)
@@ -125,10 +138,16 @@ namespace Xroads
             return true;
         }
 
-        //TODO: rename this to be more descriptive
-        Coord2D<T> GetAmount(const Coord2D<T>& amount) const
+        //TODO: rename these to be more descriptive
+        //transforms from the internal coordinates of the rect to the outside coordinates
+        Coord2D<T> TransformFrom(const Coord2D<T>& relative) const
         {
-            return topleft*(-amount+1.0f) + bottomright*amount;
+            return topleft*(-relative+1.0f) + bottomright*relative;
+        }
+        //transforms from the outside coordinates to the internal coordinates
+        Coord2D<T> TransformTo(const Coord2D<T>& absolute) const
+        {
+            return (absolute-topleft)/(bottomright-topleft);
         }
 
         //TODO:
