@@ -257,7 +257,7 @@ namespace Xroads
 
         static void SetV(CAMERA camera, const glm::mat4& mat)
         {
-            Vs[int(camera)] = mat;
+            Vs[i32(camera)] = mat;
         }
         static void SetP(CAMERA camera, const glm::mat4& mat)
         {
