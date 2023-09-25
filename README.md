@@ -22,4 +22,4 @@ Use four spaces for indentation, no tabs.
 
 ## Licence
 
-Everything except for glad is GPL3 licenced.
+Everything is MIT licensed.
