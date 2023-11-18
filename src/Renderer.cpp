@@ -7,42 +7,51 @@
 
 namespace Xroads
 {
+
     GLuint Renderer::vertexarray_id;
     GLuint Renderer::vertexbuffer_id;
-    int Renderer::trianglecount = 0;
+    i64 Renderer::trianglecount = 0;
     int Renderer::searches = 0;
     int Renderer::getvecs = 0;
-    float Renderer::aberration{};
     int Renderer::n_lights_last_frame = 0;
-    float Renderer::flash_amount{};
-    Xr::Color Renderer::flash_color{};
+    Renderer::Options Renderer::options{};
+    CENTERING Renderer::current_centering = CENTERING::XYZ;
+    std::vector<std::string> Renderer::light_uniform_names;
 
     std::array<std::vector<Renderer::RenderList>,int(Renderer::STAGE::N)> Renderer::renderlists;
     std::array<std::vector<Renderer::LightDef>,3> Renderer::lights;
 
-    map<ModelID, vector<std::pair<Xr::Color,glm::mat4>>> Renderer::modelqueue;
-    array<glm::mat4,int(Renderer::CAMERA::N)> Renderer::Vs, Renderer::Ps;
+    std::map<ModelID, Renderer::ModelQueueData> Renderer::modelqueue, Renderer::modelqueueUI;
+    std::array<glm::mat4,int(Renderer::CAMERA::N)> Renderer::Vs, Renderer::Ps;
+    std::array<C3,int(Renderer::CAMERA::N)> Renderer::Vs_normal;
+    GLuint Renderer::modelVBO[2];
 
-    vector<Renderer::Model> Renderer::models;
-    map<string, ModelID> Renderer::model_ids;
+    std::vector<Renderer::Model> Renderer::models;
+    std::map<std::string, ModelID, StringLessThan> Renderer::model_ids;
 
     GLuint Renderer::gBuffer{}, Renderer::gPosition{}, Renderer::gNormal{}, Renderer::gAlbedoSpec{}, Renderer::gColorSpec{}, Renderer::rboDepth{}, Renderer::gBright{}, Renderer::gNormalOut{};
     GLuint Renderer::quadVAO{}, Renderer::quadVBO{}, Renderer::fbSecond{};
     Renderer::FBTex Renderer::pingpong[2];
 
-    u32 Renderer::LoadTexture(string name, WRAP wrap)
+    u32 Renderer::LoadTexture(std::string_view name, WRAP wrap)
     {
-        string imagepath = string("textures/") + name + ".png";
+        std::string imagepath = std::string("textures/") + std::string(name) + ".png";
         FILE *fp;
         fp = fopen(imagepath.c_str(), "rb");
         if (fp == NULL)
         {
-            cout << "Texture " << imagepath << " not found" << endl;
+            Log("Texture "+imagepath+" not found");
             return -1;
         }
 
-        int x,y,n;
+        int x{},y{},n{};
         unsigned char* data_ptr = stbi_load(imagepath.c_str(), &x, &y, &n, 0);
+        if(data_ptr == nullptr)
+        {
+            Log("stbi_load() failed with image " + imagepath);
+            return -1;
+        }
+
         vector<unsigned char> data{data_ptr, data_ptr+x*y*n};
 
         //cout << "Loaded image " << imagepath << " with xyn " << x << " " << y << " " << n << endl;
@@ -74,7 +83,7 @@ namespace Xroads
 
         glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, x, y, 0, gl_format, GL_UNSIGNED_BYTE, &data[0]);
 
-        if (name == "mainfont_scifi" || name == "mainfont")
+        if (name == "_mainfont_scifi" || name == "_mainfont")
         {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -100,13 +109,14 @@ namespace Xroads
         return textureID;
     }
 
-    u32 Renderer::LoadShader(string name)
+    u32 Renderer::LoadShader(std::string_view name)
     {
-        cout << "Load shader: " << name << endl;
+        Log("Load shader: "+std::string(name));
 
         // Read the Vertex Shader code from the file
-        std::string VertexShaderCode;
-        std::ifstream VertexShaderStream("shaders/" + name + "_vertex.glsl", std::ios::in);
+        std::string VertexShaderCode = "#version 430\n"+options.GetShaderDefines();
+        //std::ifstream VertexShaderStream("shaders/" + std::string(name) + "_vertex.glsl", std::ios::in);
+        std::ifstream VertexShaderStream(std::format("shaders/{}_vertex.glsl",name), std::ios::in);
         if (VertexShaderStream.is_open())
         {
             std::string Line = "";
@@ -114,23 +124,27 @@ namespace Xroads
                 VertexShaderCode += "\n" + Line;
             VertexShaderStream.close();
         }
+        else
+            Kill("Shader " + std::string(name) + " not found!");
 
         // Read the Fragment Shader code from the file
-        std::string FragmentShaderCode;
-        std::ifstream FragmentShaderStream("shaders/" + name + "_fragment.glsl", std::ios::in);
+        std::string FragmentShaderCode = "#version 430\n"+options.GetShaderDefines();
+        std::ifstream FragmentShaderStream(std::format("shaders/{}_fragment.glsl",name), std::ios::in);
         if (FragmentShaderStream.is_open()){
             std::string Line = "";
             while (getline(FragmentShaderStream, Line))
                 FragmentShaderCode += "\n" + Line;
             FragmentShaderStream.close();
         }
+        else
+            Kill("Shader " + std::string(name) + " not found!");
 
         GLint Result = GL_FALSE;
         int InfoLogLength;
 
         GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
         // Compile Vertex Shader
-        cout << "Compiling shader " << name << "_vertex" << endl;
+        Log(std::format("Compiling shader {}_vertex",name));
         char const * VertexSourcePointer = VertexShaderCode.c_str();
         glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
         glCompileShader(VertexShaderID);
@@ -138,13 +152,18 @@ namespace Xroads
         // Check Vertex Shader
         glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
         glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-        std::vector<char> VertexShaderErrorMessage(InfoLogLength);
-        glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
-        fprintf(stdout, "%s\n", &VertexShaderErrorMessage[0]);
+
+        if (InfoLogLength > 0)
+        {
+            std::vector<char> VertexShaderErrorMessage(InfoLogLength);
+            glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+            Log(std::string("Vertex shader log: ") + &VertexShaderErrorMessage[0]);
+        }
+        //fprintf(stdout, "%s\n", &VertexShaderErrorMessage[0]);
 
         GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
         // Compile Fragment Shader
-        cout << "Compiling shader " << name << "_fragment" << endl;
+        Log("Compiling shader "+std::string(name)+"_fragment");
         char const * FragmentSourcePointer = FragmentShaderCode.c_str();
         glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
         glCompileShader(FragmentShaderID);
@@ -152,12 +171,15 @@ namespace Xroads
         // Check Fragment Shader
         glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
         glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-        std::vector<char> FragmentShaderErrorMessage(InfoLogLength);
-        glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
-        fprintf(stdout, "%s\n", &FragmentShaderErrorMessage[0]);
+        if (InfoLogLength > 0)
+        {
+            std::vector<char> FragmentShaderErrorMessage(InfoLogLength);
+            glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+            Log(std::string("Fragment shader log: ") + &FragmentShaderErrorMessage[0]);
+        }
 
         // Link the program
-        fprintf(stdout, "Linking program\n");
+        Log("Linking program");
         GLuint ProgramID = glCreateProgram();
         glAttachShader(ProgramID, VertexShaderID);
         glAttachShader(ProgramID, FragmentShaderID);
@@ -166,9 +188,12 @@ namespace Xroads
         // Check the program
         glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
         glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-        std::vector<char> ProgramErrorMessage(glm::max(InfoLogLength, int(1)));
-        glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
-        fprintf(stdout, "%s\n", &ProgramErrorMessage[0]);
+        if (InfoLogLength > 0)
+        {
+            std::vector<char> ProgramErrorMessage(glm::max(InfoLogLength, int(1)));
+            glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+            Log(std::string("Linking program log: ") + &ProgramErrorMessage[0]);
+        }
 
         glDeleteShader(VertexShaderID);
         glDeleteShader(FragmentShaderID);

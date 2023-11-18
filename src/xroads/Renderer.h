@@ -5,7 +5,9 @@
 #include <map>
 #include "Textures.h"
 #include "Shaders.h"
+#include "Strutil.h"
 #include "Vox.h"
+#include "Obj.h"
 
 namespace Xroads
 {
@@ -21,22 +23,28 @@ namespace Xroads
     #pragma pack(pop)
 
 
-    inline std::vector<Sprite> CutAtlas(GLuint texture_id, const C2i& size)
+    inline std::vector<TextureDef> CutAtlas(GLuint texture_id, const C2i& size)
     {
-        std::vector<Sprite> sprites;
+        std::vector<TextureDef> sprites;
         for(int y=0; y<size.y; ++y)
         {
             for(int x=0; x<size.x; ++x)
             {
-                Sprite s;
+                TextureDef s;
 
                 const float bleeding_preventer = 0.009f;
 
                 s.texture_id = texture_id;
-                s.UV.topleft.x = (float(x)+bleeding_preventer)/float(size.x);
-                s.UV.topleft.y = (float(y)+bleeding_preventer)/float(size.y);
-                s.UV.bottomright.x = (float(x+1)-bleeding_preventer)/float(size.x);
-                s.UV.bottomright.y = (float(y+1)-bleeding_preventer)/float(size.y);
+                Rect2D<float> uv_rect;
+                uv_rect.topleft.x = (float(x)+bleeding_preventer)/float(size.x);
+                uv_rect.topleft.y = (float(y)+bleeding_preventer)/float(size.y);
+                uv_rect.bottomright.x = (float(x+1)-bleeding_preventer)/float(size.x);
+                uv_rect.bottomright.y = (float(y+1)-bleeding_preventer)/float(size.y);
+
+                s.UV[0] = uv_rect.GetTopLeft();
+                s.UV[1] = uv_rect.GetTopRight();
+                s.UV[2] = uv_rect.GetBottomRight();
+                s.UV[3] = uv_rect.GetBottomLeft();
 
                 sprites.push_back(s);
             }
@@ -66,7 +74,7 @@ namespace Xroads
     using ModelID = u64;
 
 
-    //this struct changes the bf16 type to float so we can use bf16 with opengl
+    //this struct changes the bf16 type to f32 so we can use bf16 with opengl
     //used in the Uniform function
     template<typename TYPE>
     struct ToOpenglType
@@ -76,7 +84,7 @@ namespace Xroads
     template<>
     struct ToOpenglType<bf16>
     {
-        using T = float;
+        using T = f32;
     };
 
 
@@ -103,7 +111,7 @@ namespace Xroads
 
         struct RenderList
         {
-            GLuint texture=-1, shader=-1;
+            GLuint texture=-1, texture2=-1, shader=-1;
             std::vector<Vertex> vertices;
         };
 
@@ -122,15 +130,13 @@ namespace Xroads
         {
             lights.at(priority).push_back({pos, color*2.0f, linear*0.1f, quadratic*0.01f});
         }
-        static Color flash_color;
-        static f32 flash_amount;
         static void Flash(Color color, f32 amount)
         {
-            flash_color = color;
-            flash_amount = amount;
+            options.flash_color = color;
+            options.flash_amount = amount;
         }
 
-        static i32 trianglecount;
+        static i64 trianglecount;
         static i32 searches, getvecs;
 
         static const u32 MAX_VERTICES_PER_FRAME = (1<<20);
@@ -138,28 +144,29 @@ namespace Xroads
         static GLuint vertexarray_id, vertexbuffer_id;
 
         static std::array<glm::mat4,i32(CAMERA::N)> Vs, Ps; //transforms for each camera
+        static std::array<C3,i32(CAMERA::N)> Vs_normal;
 
 
         struct Model
         {
             GLuint vertexbuffer=0;
             std::vector<Vertex> vertices;
-            Sprite sprite;
+            TextureDef texturedef;
 
-            Model(const VoxModel& vm, const Sprite& sprite_):sprite(sprite_)
+            template<typename ModelType>
+            Model(const ModelType& vm, const TextureDef& texturedef_):texturedef(texturedef_)
             {
-                auto& quads = vm.quads;
+                auto& faces = vm.quads;
                 auto& uvs = vm.uvs;
                 auto& colors = vm.colors;
 
-                XrAssert(quads.size(), ==, colors.size());
-
-                for(i32 q_i=0; q_i<quads.size(); ++q_i)
+                XrAssert(faces.size(), ==, colors.size());
+                for(i32 q_i=0; q_i<faces.size(); ++q_i)
                 {
-                    auto& quad = quads[q_i];
+                    auto& face = faces[q_i];
                     auto& uv = uvs[q_i];
                     auto& color = colors[q_i];
-                    auto verts = quad.GetVertices(sprite);
+                    auto verts = face.GetVertices(texturedef);
 
                     for(i32 v_i=0; v_i<verts.size(); ++v_i)
                     {
@@ -168,13 +175,13 @@ namespace Xroads
                         v.x = verts[v_i].x;
                         v.y = verts[v_i].y;
                         v.z = verts[v_i].z;
-                        v.u = uv[v_i].x;
+                        v.u = uv.at(v_i).x;
                         v.v = uv[v_i].y;
 
                         v.r = color.r;
                         v.g = color.g;
                         v.b = color.b;
-                        v.a = color.a;
+                        v.a = 1.0f;//color.a;
 
                         vertices.push_back(v);
                         if (v_i%3 == 2)
@@ -199,6 +206,7 @@ namespace Xroads
                 }
 
                 i32 n_vertices = vertices.size();
+                //std::cout << "Generating buffer for " << ToString(faces.size()) << " faces, " << n_vertices << " vertices." << std::endl;
                 glGenBuffers(1, &vertexbuffer);
                 glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
                 glBufferData(GL_ARRAY_BUFFER, n_vertices*sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
@@ -206,26 +214,58 @@ namespace Xroads
             }
         };
 
-        //vector<std::pair<ModelID, glm::mat4>> modelqueue;
-
         static std::vector<Model> models;
-        static std::map<std::string, ModelID> model_ids;
+        static std::map<std::string, ModelID, StringLessThan> model_ids;
 
-        static ModelID GetModelID(const std::string& modelname, const GLuint texture_id)
+        static CENTERING current_centering;
+
+        static ModelID GetModelID(std::string_view modelname_view, const GLuint texture_id)
         {
-            if (model_ids.contains(modelname))
-                return model_ids[modelname];
-            VoxModel vm = VoxLoader::Load(modelname, CENTERING::XYZ);
-            Model m = Model(vm, Sprite{texture_id});
-            models.push_back(m);
+            if (auto iter = model_ids.find(modelname_view); iter!=model_ids.end())
+                return iter->second;
+
+            std::string modelname{modelname_view};
+            if (ObjLoader::ObjExists(modelname))
+            {
+                ObjModel vm = ObjLoader::Load(modelname, "vox");
+                Model m = Model(vm, TextureDef(Textures::Get("_tex_"+modelname)));
+                models.push_back(m);
+            }
+            else
+            {
+                VoxModel vm = VoxLoader::Load(modelname, current_centering);
+                Model m = Model(vm, TextureDef(texture_id));
+                models.push_back(m);
+            }
             model_ids[modelname] = ModelID{models.size()-1};
             return ModelID{models.size()-1};
         }
 
-        static std::map<ModelID, std::vector<std::pair<Color,glm::mat4>>> modelqueue;
-        static void Queue(const std::string& modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+
+        struct ModelQueueData
         {
-            modelqueue[GetModelID(modelname, texture_id)].push_back(std::make_pair(color,M_matrix));
+            std::vector<Color> colors;
+            std::vector<glm::mat4> matrices;
+
+            void clear()
+            {
+                colors.clear();
+                matrices.clear();
+            }
+        };
+
+        static std::map<ModelID, ModelQueueData> modelqueue, modelqueueUI;
+        static void Queue(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+        {
+            auto& mqd = modelqueue[GetModelID(modelname, texture_id)];
+            mqd.colors.push_back(color);
+            mqd.matrices.push_back(M_matrix);
+        }
+        static void QueueUI(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+        {
+            auto& mqd = modelqueueUI[GetModelID(modelname, texture_id)];
+            mqd.colors.push_back(color);
+            mqd.matrices.push_back(M_matrix);
         }
 
         static void ChangeBuffer(int buffer_id)
@@ -237,6 +277,8 @@ namespace Xroads
             glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(f32)));
         }
 
+        static std::vector<std::string> light_uniform_names;
+
         static void Init()
         {
             glGenVertexArrays(1, &quadVAO);
@@ -245,6 +287,28 @@ namespace Xroads
             glGenBuffers(1, &vertexbuffer_id);
             glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_id);
             glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES_PER_FRAME*sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
+            glGenBuffers(2, &modelVBO[0]);
+            {
+                glBindBuffer(GL_ARRAY_BUFFER, modelVBO[0]);
+                glEnableVertexAttribArray(4);
+                glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(5);
+                glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float), (void*)16);
+                glEnableVertexAttribArray(6);
+                glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float), (void*)32);
+                glEnableVertexAttribArray(7);
+                glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float), (void*)48);
+                glVertexAttribDivisor(4, 1);
+                glVertexAttribDivisor(5, 1);
+                glVertexAttribDivisor(6, 1);
+                glVertexAttribDivisor(7, 1);
+            }
+            {
+                glBindBuffer(GL_ARRAY_BUFFER, modelVBO[1]);
+                glEnableVertexAttribArray(8);
+                glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+                glVertexAttribDivisor(8, 1);
+            }
 
             ChangeBuffer(vertexbuffer_id);
 
@@ -252,11 +316,19 @@ namespace Xroads
             //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDisable(GL_BLEND);
 
-             glEnable(GL_CULL_FACE);
+            glEnable(GL_CULL_FACE);
+
+            light_uniform_names.clear();
+            for(int i=0; i<200; ++i)
+            {
+                light_uniform_names.push_back("lights[" + std::to_string(i) + "].Position");
+                light_uniform_names.push_back("lights[" + std::to_string(i) + "].Color");
+            }
         }
 
-        static void SetV(CAMERA camera, const glm::mat4& mat)
+        static void SetV(CAMERA camera, const glm::mat4& mat, const C3& normal)
         {
+            Vs_normal[i32(camera)] = normal;
             Vs[i32(camera)] = mat;
         }
         static void SetP(CAMERA camera, const glm::mat4& mat)
@@ -269,7 +341,7 @@ namespace Xroads
             glDeleteVertexArrays(1, &vertexarray_id);
         }
 
-        static std::vector<Vertex>& GetVec(STAGE stage, GLuint texture, GLuint shader)
+        static std::vector<Vertex>& GetVec(STAGE stage, GLuint texture, GLuint texture2, GLuint shader)
         {
             getvecs += 1;
             auto& stage_lists = renderlists[i32(stage)];
@@ -277,63 +349,49 @@ namespace Xroads
             for(auto& stage_list: stage_lists)
             {
                 searches += 1;
-                if (stage_list.texture == texture && stage_list.shader == shader)
+                if (stage_list.texture == texture && stage_list.shader == shader && stage_list.texture2 == texture2)
                 {
                     return stage_list.vertices;
                 }
             }
 
             //not found, add.
-            stage_lists.push_back(RenderList{ .texture = texture, .shader = shader, .vertices{} });
+            stage_lists.push_back(RenderList{ .texture = texture, .texture2 = texture2, .shader = shader, .vertices{} });
             return stage_lists.back().vertices;
         }
 
-        static void Queue(const IsQuadType auto& quad, const Color& color, const Sprite& sprite, GLuint shader_id, STAGE stage)
+
+        static void Queue(const IsShape auto& quad, const C3& normal, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
         {
-            auto verts = quad.GetVertices(sprite);
-
-            //auto vert_order = quad.GetVertexOrder();
-
-            for(int i=0; i<verts.size(); ++i)
+            auto verts = quad.GetVertices(texturedef);
+            //auto camnormal = Vs_normal[int(STAGE_TO_CAMERA[int(stage)])];
+            auto& vec = GetVec(stage, texturedef.texture_id, texturedef.texture2_id, shader_id);
+            for(int i=0; i<verts.size(); i+=3)
             {
-                Vertex v;
+                vec.emplace_back(verts[i  ].x,verts[i  ].y, verts[i  ].z, color.r, color.g, color.b, color.a, verts[i  ].u, verts[i  ].v, normal.x, normal.y, normal.z);
+                vec.emplace_back(verts[i+1].x,verts[i+1].y, verts[i+1].z, color.r, color.g, color.b, color.a, verts[i+1].u, verts[i+1].v, normal.x, normal.y, normal.z);
+                vec.emplace_back(verts[i+2].x,verts[i+2].y, verts[i+2].z, color.r, color.g, color.b, color.a, verts[i+2].u, verts[i+2].v, normal.x, normal.y, normal.z);
+            }
+        }
 
-                v.x = verts[i].x;
-                v.y = verts[i].y; //swap y and z
-                v.z = verts[i].z; //swap y and z
-                v.u = verts[i].u;
-                v.v = verts[i].v;
+        static void Queue(const IsShape auto& quad, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
+        {
+            auto verts = quad.GetVertices(texturedef);
 
-                v.r = color.r;
-                v.g = color.g;
-                v.b = color.b;
-                v.a = color.a;
+            auto& vec = GetVec(stage, texturedef.texture_id, texturedef.texture2_id, shader_id);
+            //auto camnormal = Vs_normal[int(STAGE_TO_CAMERA[int(stage)])];
+            for(int i=0; i<verts.size(); i+=3)
+            {
+                auto normal = TriangleNormal(verts[i],verts[i+1],verts[i+2]);
 
-                auto& vec = GetVec(stage, sprite.texture_id, shader_id);
-                vec.push_back(v);
-
-                if (vec.size()%3 == 0)
-                {
-                    int v_i = vec.size()-1;
-                    auto normal = TriangleNormal(vec[v_i-2],vec[v_i-1],vec[v_i]);
-
-                    vec[v_i-2].nx = normal.x;
-                    vec[v_i-2].ny = normal.y;
-                    vec[v_i-2].nz = normal.z;
-
-                    vec[v_i-1].nx = normal.x;
-                    vec[v_i-1].ny = normal.y;
-                    vec[v_i-1].nz = normal.z;
-
-                    vec[v_i-0].nx = normal.x;
-                    vec[v_i-0].ny = normal.y;
-                    vec[v_i-0].nz = normal.z;
-                }
+                vec.emplace_back(verts[i  ].x,verts[i  ].y, verts[i  ].z, color.r, color.g, color.b, color.a, verts[i  ].u, verts[i  ].v, normal.x, normal.y, normal.z);
+                vec.emplace_back(verts[i+1].x,verts[i+1].y, verts[i+1].z, color.r, color.g, color.b, color.a, verts[i+1].u, verts[i+1].v, normal.x, normal.y, normal.z);
+                vec.emplace_back(verts[i+2].x,verts[i+2].y, verts[i+2].z, color.r, color.g, color.b, color.a, verts[i+2].u, verts[i+2].v, normal.x, normal.y, normal.z);
             }
         }
 
         template<typename... Ts>
-        static void Uniform(GLuint shader_id, std::string name, Ts... data)
+        static void Uniform(GLuint shader_id, std::string_view name, Ts... data) //OBS: make sure *name* is null-terminated!
         {
             constexpr int SIZE = sizeof...(Ts);
             static_assert(AllSameType<Ts...>, "uniform operands should be the same type");
@@ -351,44 +409,94 @@ namespace Xroads
             if constexpr(std::is_same_v<T,int>)
             {
                 if constexpr(SIZE == 1)
-                    glUniform1iv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform1iv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
                 if constexpr(SIZE == 2)
-                    glUniform2iv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform2iv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
                 if constexpr(SIZE == 3)
-                    glUniform3iv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform3iv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
                 if constexpr(SIZE == 4)
-                    glUniform4iv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform4iv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
             }
             if constexpr(std::is_same_v<T,float>)
             {
                 if constexpr(SIZE == 1)
-                    glUniform1fv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform1fv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
                 if constexpr(SIZE == 2)
-                    glUniform2fv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform2fv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
                 if constexpr(SIZE == 3)
-                    glUniform3fv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform3fv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
                 if constexpr(SIZE == 4)
-                    glUniform4fv(glGetUniformLocation(shader_id,name.c_str()), 1, arr.data());
+                    glUniform4fv(glGetUniformLocation(shader_id,name.data()), 1, arr.data());
             }
             if constexpr(std::is_same_v<T,glm::mat4>)
             {
                 if constexpr(SIZE == 1)
-                    glUniformMatrix4fv(glGetUniformLocation(shader_id,name.c_str()), 1, false, &arr[0][0][0]);
+                    glUniformMatrix4fv(glGetUniformLocation(shader_id,name.data()), 1, false, &arr[0][0][0]);
             }
 
         }
-        static float aberration;
-        static void Aberration(float param) { aberration = param; }
+
+        struct Options
+        {
+            enum struct LIGHTING
+            {
+                LOW,
+                HIGH,
+                N
+            } lighting{LIGHTING::LOW};
+
+            f32 aberration{0.0f};
+            i32 maxlights{16};
+            f32 fog_intensity{1.0f};
+            Color fog_color{1.0f,1.0f,1.0f};
+            i32 normal_smoothing_n{1};
+            i32 occlusion_n{0};
+            f32 flash_amount{};
+            Color flash_color{};
+            i32 bloom_amount{0};
+
+            std::string GetShaderDefines()
+            {
+                std::string ret;
+                if (lighting == LIGHTING::LOW)
+                    ret += "#define LIGHTING_LOW\n";
+                else if (lighting == LIGHTING::HIGH)
+                    ret += "#define LIGHTING_HIGH\n";
+                return ret;
+            }
+        } static options;
+
+
+        static void Aberration(float param) { options.aberration = param; }
         struct FBTex
         {
             GLuint FBO{}, buffer{};
         };
+
         static FBTex pingpong[2];
-
-
         static GLuint gBuffer, gPosition, gNormal, gColorSpec, rboDepth, gAlbedoSpec, gBright, gNormalOut, fbSecond;
+        static GLuint modelVBO[2];
         static void Render()
         {
+            auto GetLightAmount = []()->int
+            {
+                int total=0;
+                for(auto& l: lights)
+                    total += l.size();
+                return total;
+            };
+
+            auto GetLight = [](int index)->LightDef&
+            {
+                for(auto& l: lights)
+                {
+                    if (index < l.size())
+                        return l[index];
+                    index -= l.size();
+                }
+                std::unreachable();
+            };
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
@@ -438,17 +546,54 @@ namespace Xroads
                     if (a.vertices.empty())
                         continue;
 
-                    GLuint texture_id = a.texture;//first.first;
-                    glBindTexture(GL_TEXTURE_2D, texture_id);
-                    GLuint shader_id = a.shader;//first.second;
-                    glUseProgram(shader_id);
-                    Uniform(shader_id, "blendcolor", 1.0f, 1.0f, 1.0f);
-                    Uniform(shader_id, "current_time", float(fmod(glfwGetTime(),1000.0f)));
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, a.texture);
 
-                    //auto loc = glGetUniformLocation(shader_id, "modelviewpers");
+                    glUseProgram(a.shader);
+
+                    Uniform(a.shader, "texture1", 0);
+                    Uniform(a.shader, "texture2", 1);
+
+                    if(a.texture2 > 0)
+                    {
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, a.texture2);
+                        Uniform(a.shader, "has_texture2", int(1));
+                        glActiveTexture(GL_TEXTURE0);
+                    }
+                    else
+                    {
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, 0);
+                        Uniform(a.shader, "has_texture2", int(0));
+                        glActiveTexture(GL_TEXTURE0);
+                    }
+
+                    Uniform(a.shader, "blendcolor", 1.0f, 1.0f, 1.0f);
+                    Uniform(a.shader, "current_time", float(fmod(glfwGetTime(),1000.0f)));
+                    //Uniform(a.shader, "water_effect", 1.0f);
+
+                    //auto loc = glGetUniformLocation(a.shader, "modelviewpers");
                     //glUniformMatrix4fv(loc, 1, GL_FALSE, &VPs[int(STAGE_TO_CAMERA[r_i])][0][0]);
-                    Uniform(shader_id, "Vs", Vs[int(STAGE_TO_CAMERA[r_i])]);
-                    Uniform(shader_id, "Ps", Ps[int(STAGE_TO_CAMERA[r_i])]);
+                    Uniform(a.shader, "Vs", Vs[int(STAGE_TO_CAMERA[r_i])]);
+                    Uniform(a.shader, "Ps", Ps[int(STAGE_TO_CAMERA[r_i])]);
+
+                    if (options.lighting == Options::LIGHTING::LOW)
+                    {
+                        std::cout << "Lights low!" << std::endl;
+                        const int N_MAX_LIGHTS = options.maxlights;
+
+                        const int lights_this_frame = Min(N_MAX_LIGHTS,GetLightAmount());
+
+                        // send light relevant uniforms
+                        for (unsigned int i = 0; i < lights_this_frame; i++)
+                        {
+                            auto& light = GetLight(i);
+                            Uniform(a.shader, light_uniform_names[i*2], light.pos.x, light.pos.y, light.pos.z);
+                            Uniform(a.shader, light_uniform_names[i*2+1], light.color.r, light.color.g, light.color.b);
+                        }
+                        Uniform(a.shader, "n_lights",lights_this_frame);
+                    }
 
                     glBufferSubData(GL_ARRAY_BUFFER, 0, a.vertices.size()*sizeof(Vertex),(void*)a.vertices.data());
                     glDrawArrays(GL_TRIANGLES, 0, a.vertices.size());
@@ -458,31 +603,34 @@ namespace Xroads
 
                 if (STAGE(r_i) == STAGE::ACTOR)
                 {
-                    GLuint default_shader_id = Shaders::Get("default2_color");
+                    auto XrglBufferDataFromVector = [](GLuint buf, const auto& vec)
+                    {
+                        glBindBuffer(GL_ARRAY_BUFFER, buf);
+                        glBufferData(GL_ARRAY_BUFFER, sizeof(typename std::remove_cvref<decltype(vec)>::type::value_type)*vec.size(), vec.data(), GL_DYNAMIC_DRAW);
+                    };
+
+                    GLuint default_shader_id = Shaders::Get("default_model");
                     glUseProgram(default_shader_id);
-                    for(auto& [id, matrices]: modelqueue)
+                    Uniform(default_shader_id, "Ps", Ps[int(STAGE_TO_CAMERA[r_i])]);
+                    Uniform(default_shader_id, "Vs", Vs[int(STAGE_TO_CAMERA[r_i])]);
+                    for(auto& [id, mdq]: modelqueue)
                     {
                         Renderer::Model& m = models[id];
                         ChangeBuffer(m.vertexbuffer);
 
-                        GLuint texture_id = m.sprite.texture_id;
+                        GLuint texture_id = m.texturedef.texture_id;
                         glBindTexture(GL_TEXTURE_2D, texture_id);
 
-                        for(auto& [color, matrix]: matrices)
-                        {
-                            glm::mat4 tempmat = Vs[int(STAGE_TO_CAMERA[r_i])] * matrix;
-                            Uniform(default_shader_id, "Ps", Ps[int(STAGE_TO_CAMERA[r_i])]);
-                            Uniform(default_shader_id, "Vs", tempmat);
-                            Uniform(default_shader_id, "blendcolor", color.r, color.g, color.b);
-                            glDrawArrays(GL_TRIANGLES, 0, m.vertices.size());
-                            trianglecount += m.vertices.size()/3;
-                        }
-                        matrices.clear();
-                    }
-                    modelqueue.clear();
-                    ChangeBuffer(vertexbuffer_id);
-                    Uniform(default_shader_id, "blendcolor", 1.0f, 1.0f, 1.0f);
+                        XrglBufferDataFromVector(modelVBO[0], mdq.matrices);
+                        XrglBufferDataFromVector(modelVBO[1], mdq.colors);
 
+                        glDrawArraysInstanced(GL_TRIANGLES, 0, m.vertices.size(), mdq.colors.size());
+                        trianglecount += m.vertices.size()/3ULL*mdq.colors.size();
+                        mdq.clear();
+                    }
+                    ChangeBuffer(vertexbuffer_id);
+                    //glUseProgram(Shaders::Get("default2_color"));
+                    //Uniform(default_shader_id, "blendcolor", 1.0f, 1.0f, 1.0f);
                 }
 
             }
@@ -501,6 +649,9 @@ namespace Xroads
             Uniform(deferred_program_id, "gPosition", 0);
             Uniform(deferred_program_id, "gNormal", 1);
             Uniform(deferred_program_id, "gAlbedoSpec", 2);
+            Uniform(deferred_program_id, "fog_attributes", options.fog_color.r, options.fog_color.g, options.fog_color.b, options.fog_intensity);
+            Uniform(deferred_program_id, "normal_smoothing_n", options.normal_smoothing_n);
+            Uniform(deferred_program_id, "occlusion_n", options.occlusion_n);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, gPosition);
@@ -509,49 +660,23 @@ namespace Xroads
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
 
-            Uniform(deferred_program_id, "aberration", aberration);
+            Uniform(deferred_program_id, "aberration", options.aberration);
 
-            auto GetLightAmount = []()->int
+            if (options.lighting == Options::LIGHTING::HIGH)
             {
-                int total=0;
-                for(auto& l: lights)
-                    total += l.size();
-                return total;
-            };
-
-            auto GetLight = [](int index)->LightDef&
-            {
-                for(auto& l: lights)
+                const int N_MAX_LIGHTS = options.maxlights;
+                // send light relevant uniforms
+                Uniform(deferred_program_id, "Vs", Vs[int(CAMERA::PERSPECTIVE)]);
+                n_lights_last_frame = 0;
+                for (unsigned int i = 0; i < Min(N_MAX_LIGHTS,GetLightAmount()); i++)
                 {
-                    if (index < l.size())
-                        return l[index];
-                    index -= l.size();
+                    auto& light = GetLight(i);
+                    Uniform(deferred_program_id, light_uniform_names[i*2], light.pos.x, light.pos.y, light.pos.z);
+                    Uniform(deferred_program_id, light_uniform_names[i*2+1], light.color.r, light.color.g, light.color.b);
+                    ++n_lights_last_frame;
                 }
-                std::unreachable();
-            };
-
-            const int N_MAX_LIGHTS = 96;
-            // send light relevant uniforms
-            Uniform(deferred_program_id, "Vs", Vs[int(CAMERA::PERSPECTIVE)]);
-            n_lights_last_frame = 0;
-            for (unsigned int i = 0; i < Min(N_MAX_LIGHTS,GetLightAmount()); i++)
-            {
-                auto& light = GetLight(i);
-                Uniform(deferred_program_id, "lights[" + std::to_string(i) + "].Position", light.pos.x, light.pos.y, light.pos.z);
-                Uniform(deferred_program_id, "lights[" + std::to_string(i) + "].Color", light.color.r, light.color.g, light.color.b);
-                //const float linear = 0.7f;
-                //const float quadratic = 1.8f;
-                Uniform(deferred_program_id, "lights[" + std::to_string(i) + "].Linear", light.linear);
-                Uniform(deferred_program_id, "lights[" + std::to_string(i) + "].Quadratic", light.quadratic);
-
-                //shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Position", light.pos[0], light.pos[1], light.pos[2]);
-                //shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color", light.color[0], light.color[1], light.color[2]);
-                // update attenuation parameters and calculate radius
-                //shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
-                //shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
-                ++n_lights_last_frame;
+                Uniform(deferred_program_id, "n_lights", Min(N_MAX_LIGHTS,GetLightAmount()));
             }
-            Uniform(deferred_program_id, "n_lights", Min(N_MAX_LIGHTS,GetLightAmount()));
             //shaderLightingPass.setVec3("viewPos", camera.Position);
             for(auto& l: lights)
                 l.clear();
@@ -574,11 +699,10 @@ namespace Xroads
                 //bool horizontal = true, first_iteration = true;
                 bool first_iteration = true;
                 int horizontal = 1;
-                unsigned int amount = 6;
 
                 GLuint blur_program = Shaders::Get("blur");
                 glUseProgram(blur_program);
-                for (unsigned int i = 0; i < amount; i++)
+                for (int i = 0; i < options.bloom_amount; ++i)
                 {
                     glBindFramebuffer(GL_FRAMEBUFFER, pingpong[horizontal%2].FBO);
                     Uniform(blur_program,"horizontal",horizontal);
@@ -607,7 +731,7 @@ namespace Xroads
                 Uniform(bf,"bloomBlur",1);
                 Uniform(bf,"bloom",bloom);
                 Uniform(bf,"exposure",exposure);
-                Uniform(bf,"flash",flash_color.r,flash_color.g,flash_color.b,flash_amount);
+                Uniform(bf,"flash",options.flash_color.r,options.flash_color.g,options.flash_color.b,options.flash_amount);
                 glClear(GL_DEPTH_BUFFER_BIT);
                 renderQuad();
             }
@@ -621,7 +745,12 @@ namespace Xroads
             glActiveTexture(GL_TEXTURE0);
             glClear(GL_DEPTH_BUFFER_BIT);
             glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glBlendColor(1.0f,1.0f,1.0f,1.0f);
+            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+            glBlendEquation(GL_FUNC_ADD);
+
             for(int r_i=int(STAGE::HEALTHBAR); r_i<int(STAGE::N); ++r_i)
             {
                 auto& renderlist = renderlists[r_i];
@@ -630,6 +759,7 @@ namespace Xroads
                 {
                 case CAMERA::ORTHO:
                     glDisable(GL_DEPTH_TEST);
+                    glClear(GL_DEPTH_BUFFER_BIT);
                     break;
                 case CAMERA::PERSPECTIVE:
                     glEnable(GL_DEPTH_TEST);
@@ -667,6 +797,36 @@ namespace Xroads
                     a.vertices.clear();
                 }
             }
+
+            //modelqueueUI
+            /*
+            {
+                //glClear(GL_DEPTH_BUFFER_BIT);
+                GLuint default_shader_id = Shaders::Get("gui");
+                glUseProgram(default_shader_id);
+                Uniform(default_shader_id, "has_texture2", int(0));
+                for(auto& [id, matrices]: modelqueueUI)
+                {
+                    Renderer::Model& m = models[id];
+                    ChangeBuffer(m.vertexbuffer);
+
+                    GLuint texture_id = m.texturedef.texture_id;
+                    glBindTexture(GL_TEXTURE_2D, texture_id);
+
+                    for(auto& [color, matrix]: matrices)
+                    {
+                        glm::mat4 tempmat = Vs[int(STAGE_TO_CAMERA[int(STAGE::GUI)])] * matrix;
+                        Uniform(default_shader_id, "Ps", Ps[int(STAGE_TO_CAMERA[int(STAGE::GUI)])]);
+                        Uniform(default_shader_id, "Vs", tempmat);
+                        Uniform(default_shader_id, "blendcolor", color.r, color.g, color.b);
+                        glDrawArrays(GL_TRIANGLES, 0, m.vertices.size());
+                        trianglecount += m.vertices.size()/3;
+                    }
+                    matrices.clear();
+                }
+                ChangeBuffer(vertexbuffer_id);
+                Uniform(default_shader_id, "blendcolor", 1.0f, 1.0f, 1.0f);
+            }*/
         }
 
         static GLuint quadVAO, quadVBO;
@@ -721,6 +881,8 @@ namespace Xroads
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
 
             // - color + specular color buffer
@@ -743,7 +905,7 @@ namespace Xroads
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
             // finally check if framebuffer is complete
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                std::cout << "Framebuffer not complete!" << std::endl;
+                Log("Framebuffer not complete!");
 
 
             glGenFramebuffers(1, &fbSecond);
@@ -775,7 +937,7 @@ namespace Xroads
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        static u32 LoadShader(std::string name);
-        static u32 LoadTexture(std::string name, WRAP wrap);
+        static u32 LoadShader(std::string_view name);
+        static u32 LoadTexture(std::string_view name, WRAP wrap);
     };
 }
