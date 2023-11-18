@@ -29,6 +29,14 @@ namespace Xroads
         return val;
     }
 
+    template<typename T>
+    bool IsBetween(const T& val, const T& low, const T& high)
+    {
+        if (val<low) return false;
+        if (val>high) return false;
+        return true;
+    }
+
     //TODO: add documentation on how this class works and how it's supposed to be used
     template<typename T>
     struct Damped
@@ -51,4 +59,21 @@ namespace Xroads
         Damped& operator+=(const T& t) { target += t; return *this; }
         Damped& operator-=(const T& t) { target -= t; return *this; }
     };
+
+    template<typename T>
+    T FastCos(T input)
+    {
+        return std::cos(input);
+    }
+    template<typename T>
+    T FastSin(T input)
+    {
+        return std::sin(input);
+    }
+
+    template<typename T>
+    T Square(T input)
+    {
+        return input*input;
+    }
 }
