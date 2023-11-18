@@ -43,12 +43,6 @@ namespace Xroads
         return Random()%(high-low+1)+low;
     }
 
-    int WeightedChoice(const std::vector<double>& weights)
-    {
-        std::discrete_distribution<> disc_dist(weights.begin(), weights.end());
-        return disc_dist(generator);
-    }
-
     double RandomDouble()
     {
         return Random()*2.3283064365386962890625e-10;
@@ -57,5 +51,15 @@ namespace Xroads
     double RandomDouble(double low, double high)
     {
         return RandomDouble()*(high-low)+low;
+    }
+
+    float RandomFloat()
+    {
+        return float(RandomDouble());
+    }
+
+    float RandomFloat(float low, float high)
+    {
+        return float(RandomDouble()*(double(high)-double(low))+double(low));
     }
 }
