@@ -4,6 +4,8 @@
 #include <array>
 #include <utility>
 
+#include "Strutil.h"
+
 namespace Xroads
 {
     //access-safe version of std::vector
@@ -31,13 +33,10 @@ namespace Xroads
         {
             if (n < 0 || n >= size())
             {
-#ifdef XR_VERBOSE_ERRORS
-                std::cout << "Invalid vector access with index " << n << ", size " << size() << std::endl;
-#else
+                Log("Invalid access with index " + ToString(n) + ", size " + ToString(size()));
                 std::abort();
-#endif
             }
-            return v.at(n);
+            return v[n];
         }
 
         int Sum()
@@ -65,14 +64,23 @@ namespace Xroads
 
         auto X() { return dims.x; }
         auto Y() { return dims.y; }
+        auto size() { return dims; }
 
         auto begin() { return data.begin(); }
         auto end() { return data.end(); }
         auto cbegin() const { return data.cbegin(); }
         auto cend() const { return data.cend(); }
 
-        T& operator()(int x, int y) { return data[y*dims.x+x]; }
-        const T& operator()(int x, int y) const { return data[y*dims.x+x]; }
+        void AssertBounds(int x, int y)
+        {
+            if (!in_bounds(x,y))
+            {
+                Kill(std::format("{},{} doesn't fit into Vec2D {},{}", x, y, X(), Y()));
+            }
+        }
+
+        T& operator()(int x, int y) { AssertBounds(x,y); return data[y*dims.x+x]; }
+        const T& operator()(int x, int y) const { AssertBounds(x,y); return data[y*dims.x+x]; }
 
         T& operator()(const auto& p) { return operator()(p.x, p.y); };
         const T& operator()(const auto& p) const { return operator()(p.x, p.y); };
@@ -111,8 +119,8 @@ namespace Xroads
         auto cbegin() const { return data.cbegin(); }
         auto cend() const { return data.cend(); }
 
-        T& operator()(int x, int y, int z) { return data[z*dims[1]*dims[0]+y*dims[0]+x]; }
-        const T& operator()(int x, int y, int z) const { return data[z*dims[1]*dims[0]+y*dims[0]+x]; }
+        T& operator()(int x, int y, int z) { return data.at(z*dims[1]*dims[0]+y*dims[0]+x); }
+        const T& operator()(int x, int y, int z) const { return data.at(z*dims[1]*dims[0]+y*dims[0]+x); }
 
         T& operator()(const auto& p) { auto& [x,y,z] = p; return operator()(x,y,z); };
         const T& operator()(const auto& p) const { auto& [x,y,z] = p; return operator()(x,y,z); };
@@ -136,7 +144,6 @@ namespace Xroads
         }
     };
 
-
     //access-safe version of std::array
     template<typename T, int SIZE>
     struct Array
@@ -154,17 +161,19 @@ namespace Xroads
 
         //FIXME: why is this requires clause here? makes no sense.
         template<typename INDEXTYPE> requires std::same_as<int,INDEXTYPE>
-        T& operator[](INDEXTYPE n) { return at<INDEXTYPE>(n); }
+        T& operator[](INDEXTYPE n)
+        {
+            return at<INDEXTYPE>(n);
+        }
         template<typename INDEXTYPE> requires std::same_as<int,INDEXTYPE>
         T& at(INDEXTYPE n)
         {
             if (n < 0 || n >= size())
-#ifdef XR_VERBOSE_ERRORS
-                std::cout << "Invalid array access with index " << n << ", size " << size() << std::endl;
-#else
+            {
+                Log("Invalid array access with index " + ToString(n) + ", size " + ToString(SIZE));
                 std::abort();
-#endif
-            return v.at(n);
+            }
+            return v[n];
         }
     };
 
@@ -182,17 +191,19 @@ namespace Xroads
             data.push_back(elem);
         }
 
-        U& operator[](const T& item)
+        template<typename KEYPARAM>
+        U& operator[](const KEYPARAM& item) requires std::same_as<T,KEYPARAM> || std::convertible_to<T,std::string_view>
         {
             auto it = find(item);
             if (it == data.end())
             {
-                insert(make_pair(item, U()));
+                insert(std::make_pair(T(item), U()));
                 return data.back().second;
             }
             return it->second;
         }
-        typename Data::iterator find(const T& key)
+        template<typename KEYPARAM>
+        typename Data::iterator find(const KEYPARAM& key) requires std::same_as<T,KEYPARAM> || std::convertible_to<T,std::string_view>
         {
             typename Data::iterator it = data.begin();
             for (; it != data.end(); ++it)
@@ -221,9 +232,11 @@ namespace Xroads
             return std::strong_ordering::equal;
         }
         std::array<T, std::size_t(ENUM::N)> arr{};
-        T& operator[](ENUM index) { return arr[size_t(index)]; }
-        const T& operator[](ENUM index) const { return arr[size_t(index)]; }
+        constexpr T& operator[](ENUM index) { return arr[size_t(index)]; }
+        constexpr const T& operator[](ENUM index) const { return arr[size_t(index)]; }
         auto begin() { return std::begin(arr); }
         auto end() { return std::end(arr); }
+        auto begin() const { return std::cbegin(arr); }
+        auto end() const { return std::cend(arr); }
     };
 }
