@@ -109,6 +109,11 @@ namespace Xroads
             return x*rhs.x+y*rhs.y+z*rhs.z;
         }
 
+        constexpr T NormalizedDot(const Coord3D& rhs)
+        {
+            return Normalize().Dot(rhs.Normalize());
+        }
+
     };
 
     template<typename T>
