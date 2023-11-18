@@ -18,8 +18,9 @@ namespace Xroads
     class Textures
     {
     public:
-        static void Load(const std::string& name, WRAP wrap);
-        static u32 Get(const std::string& name, WRAP wrap = WRAP::YES);
+        static void Load(std::string_view name, WRAP wrap);
+        static bool Has(std::string_view name);
+        static u32 Get(std::string_view, WRAP wrap = WRAP::YES);
         static void UnloadAll();
 
         static void Unload(u32& n);
