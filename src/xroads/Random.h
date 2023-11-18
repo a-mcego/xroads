@@ -7,6 +7,8 @@ namespace Xroads
     u32 Random(u32 low, u32 high); //range inclusive
     double RandomDouble();
     double RandomDouble(double low, double high);
+    float RandomFloat();
+    float RandomFloat(float low, float high);
 
     template<std::floating_point FP>
     int WeightedChoice(const std::span<FP>& weights)
