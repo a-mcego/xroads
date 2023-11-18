@@ -1,9 +1,18 @@
 #pragma once
 
 #include <cstdio>
+#include <vector>
 
 namespace Xroads
 {
+    inline bool FileExists(const std::string& filename)
+    {
+        FILE* filu = fopen(filename.c_str(), "rb");
+        if (filu == nullptr)
+            return false;
+        fclose(filu);
+        return true;
+    }
     inline std::vector<u8> ReadFile(const std::string& filename)
     {
         std::vector<u8> ret;
