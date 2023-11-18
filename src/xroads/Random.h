@@ -7,7 +7,16 @@ namespace Xroads
     u32 Random(u32 low, u32 high); //range inclusive
     double RandomDouble();
     double RandomDouble(double low, double high);
-    int WeightedChoice(const std::vector<double>& weights);
+
+    template<std::floating_point FP>
+    int WeightedChoice(const std::span<FP>& weights)
+    {
+        extern std::mt19937 generator;
+        if (weights.empty())
+            Kill("weights empty");
+        std::discrete_distribution<> disc_dist(weights.begin(), weights.end());
+        return disc_dist(generator);
+    }
 
     //in, a,b ]0,1]
     //out, two normally distributed values
