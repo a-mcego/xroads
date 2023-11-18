@@ -181,16 +181,26 @@ namespace Xroads
         {
             return (absolute-topleft)/(bottomright-topleft);
         }
-
-        //TODO:
-        Coord2D<T> GetRelativeCoords(const Coord2D<T>& coords) const
-        {
-            return (coords-topleft)/(bottomright-topleft);
-        }
-
         Coord2D<T> Center() const
         {
             return Coord2D<T>{Average(topleft.x,bottomright.x), Average(topleft.y,bottomright.y)};
+        }
+
+        Coord2D<T> GetTopLeft() const
+        {
+            return topleft;
+        }
+        Coord2D<T> GetTopRight() const
+        {
+            return {bottomright.x, topleft.y};
+        }
+        Coord2D<T> GetBottomLeft() const
+        {
+            return {topleft.x, bottomright.y};
+        }
+        Coord2D<T> GetBottomRight() const
+        {
+            return bottomright;
         }
 
     };
