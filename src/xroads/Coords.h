@@ -5,7 +5,6 @@
 
 namespace Xroads
 {
-
     template<typename T>
     struct Coord2D
     {
@@ -38,6 +37,15 @@ namespace Xroads
         Coord2D Normalize() const
         {
             return (*this) / Length();
+        }
+
+        Coord2D NormalizeOrDefault() const
+        {
+            auto len = Length();
+            if (len == 0.0f)
+                return Coord2D{1.0f,0.0f};
+            Coord2D t = *this;
+            return t / len;
         }
 
         Coord2D Rotate(float angle_radians) const
@@ -73,29 +81,48 @@ namespace Xroads
 #undef implement_op
         constexpr Coord3D operator-() const { Coord3D ret = *this; ret.x = -x, ret.y = -y, ret.z = -z; return ret; }
 
-        constexpr bool operator==(const Coord3D& rhs) const
-        {
-            return x==rhs.x && y==rhs.y && z == rhs.z;
-        }
+        constexpr auto operator<=>(const Coord3D& rhs) const = default;
 
+        constexpr Coord2D<T> xy() const { return Coord2D<T>{x,y}; }
+        constexpr Coord2D<T> xz() const { return Coord2D<T>{x,z}; }
+        constexpr Coord2D<T> yx() const { return Coord2D<T>{y,x}; }
+        constexpr Coord2D<T> yz() const { return Coord2D<T>{y,z}; }
+        constexpr Coord2D<T> zx() const { return Coord2D<T>{z,x}; }
+        constexpr Coord2D<T> zy() const { return Coord2D<T>{z,y}; }
 
-        T Length() const
+        constexpr Coord3D<T> xyz() const { return Coord3D<T>{x,y,z}; }
+        constexpr Coord3D<T> xzy() const { return Coord3D<T>{x,z,y}; }
+        constexpr Coord3D<T> yxz() const { return Coord3D<T>{y,x,z}; }
+        constexpr Coord3D<T> yzx() const { return Coord3D<T>{y,z,x}; }
+        constexpr Coord3D<T> zxy() const { return Coord3D<T>{z,x,y}; }
+        constexpr Coord3D<T> zyx() const { return Coord3D<T>{z,y,x}; }
+
+        constexpr T Length() const
         {
             return std::sqrt(x*x+y*y+z*z);
         }
 
-        T LengthSq() const
+        constexpr T LengthSq() const
         {
             return x*x+y*y+z*z;
         }
 
-        Coord3D Normalize() const
+        constexpr Coord3D Normalize() const
         {
             Coord3D t = *this;
             return t / Length();
         }
 
-        Coord3D Cross(const Coord3D& rhs) const
+        constexpr Coord3D NormalizeOrDefault() const
+        {
+            auto len = Length();
+            if (len == 0.0f)
+                return Coord3D{0.0f,0.0f,1.0f};
+            Coord3D t = *this;
+            return t / len;
+        }
+
+        constexpr Coord3D Cross(const Coord3D& rhs) const
         {
             return Coord3D
             {
@@ -104,7 +131,7 @@ namespace Xroads
                 x * rhs.y - y * rhs.x
             };
         }
-        T Dot(const Coord3D& rhs) const
+        constexpr T Dot(const Coord3D& rhs) const
         {
             return x*rhs.x+y*rhs.y+z*rhs.z;
         }
