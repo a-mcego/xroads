@@ -206,7 +206,12 @@ namespace Xroads
     };
 
     //bjarne says "requires requires" is a code smell
-    template<typename To, typename From> requires requires(From from, To to){ to.x=from.x; to.y=from.y; to.z=from.z; } To Conv3D(const From& from) { To to; to.x = from.x; to.y = from.y; to.z = from.z; return to; }
+    template<typename To, typename From> requires requires(From from, To to){ to.x=from.x; to.y=from.y; to.z=from.z; }
+    To Conv3D(const From& from)
+    {
+        To to; to.x = from.x; to.y = from.y; to.z = from.z; return to;
+    }
+
     template<typename T>
     T SwapYZ(const T& t)
     {
@@ -227,6 +232,13 @@ namespace Xroads
     {
         C3 v1{p2.x-p1.x, p2.y-p1.y, p2.z-p1.z};
         C3 v2{p3.x-p1.x, p3.y-p1.y, p3.z-p1.z};
-        return v1.Cross(v2).Normalize();
+        return -v1.Cross(v2).Normalize();
+    }
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& o, const Xroads::Coord3D<T>& c)
+    {
+        o << '(' << c.x << ' ' << c.y << ' ' << c.z << ')';
+        return o;
     }
 }
