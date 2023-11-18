@@ -64,22 +64,34 @@ namespace Xroads
     {
         XY, XYZ
     };
+
+
+    inline Color ToColorNoColorSpace(u32 color)
+    {
+        Color ret;
+        ret.r = (color%0x100)/255.0f;
+        ret.g = ((color>>8)%0x100)/255.0f;
+        ret.b = ((color>>16)%0x100)/255.0f;
+        ret.a = ((color>>24)%0x100)/255.0f;
+        return ret;
+    }
+
+    inline Color ToColor(u32 color)
+    {
+        Color ret;
+        //powf to bring this into sRGB
+        ret.r = powf((color%0x100)/255.0f,2.2f);
+        ret.g = powf(((color>>8)%0x100)/255.0f,2.2f);
+        ret.b = powf(((color>>16)%0x100)/255.0f,2.2f);
+        ret.a = ((color>>24)%0x100)/255.0f; //no gamma correction for alpha channel
+        return ret;
+    }
+
     struct VoxModel
     {
         std::vector<GeneralQuad> quads;
         std::vector<std::vector<C2>> uvs;
         std::vector<Color> colors;
-
-        Color ToColor(u32 color)
-        {
-            Color ret;
-            //powf to bring this into sRGB
-            ret.r = powf((color%0x100)/255.0f,2.2f);
-            ret.g = powf(((color>>8)%0x100)/255.0f,2.2f);
-            ret.b = powf(((color>>16)%0x100)/255.0f,2.2f);
-            ret.a = ((color>>24)%0x100)/255.0f; //no gamma correction for alpha channel
-            return ret;
-        }
 
         void FinalizeModel(CENTERING centering)
         {
@@ -136,54 +148,54 @@ namespace Xroads
                         if (Get({x-1,y,z}) == 0)
                         {
                             C3 midpoint = C3{float(x), float(y)+0.5f, float(z)+0.5f};
-                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,-1.0f,0.0f}, {0.0f,0.0f,1.0f}});
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,-1.0f,0.0f}, {0.0f,0.0f,-1.0f}});
                             colors.push_back(current_color);
-                            MakeUV(quads.back().GetVertices(Sprite{}));
+                            MakeUV(quads.back().GetVertices(TextureDef{}));
                         }
                         if (Get({x+1,y,z}) == 0)
                         {
                             C3 midpoint = C3{float(x+1), float(y)+0.5f, float(z)+0.5f};
-                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,1.0f,0.0f}, {0.0f,0.0f,1.0f}});
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,1.0f,0.0f}, {0.0f,0.0f,-1.0f}});
                             colors.push_back(current_color);
-                            MakeUV(quads.back().GetVertices(Sprite{}));
+                            MakeUV(quads.back().GetVertices(TextureDef{}));
                         }
                         if (Get({x,y-1,z}) == 0)
                         {
                             C3 midpoint = C3{float(x)+0.5f, float(y), float(z)+0.5f};
-                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,0.0f,-1.0f}, {1.0f,0.0f,0.0f}});
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,0.0f,-1.0f}, {-1.0f,0.0f,0.0f}});
                             colors.push_back(current_color*0.92f);
-                            MakeUV(quads.back().GetVertices(Sprite{}));
+                            MakeUV(quads.back().GetVertices(TextureDef{}));
                         }
                         if (Get({x,y+1,z}) == 0)
                         {
                             C3 midpoint = C3{float(x)+0.5f, float(y+1), float(z)+0.5f};
-                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,0.0f,1.0f}, {1.0f,0.0f,0.0f}});
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {0.0f,0.0f,1.0f}, {-1.0f,0.0f,0.0f}});
                             colors.push_back(current_color*0.92f);
-                            MakeUV(quads.back().GetVertices(Sprite{}));
+                            MakeUV(quads.back().GetVertices(TextureDef{}));
                         }
                         if (Get({x,y,z-1}) == 0)
                         {
                             C3 midpoint = C3{float(x)+0.5f, float(y)+0.5f, float(z)};
-                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {-1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}});
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {-1.0f,0.0f,0.0f}, {0.0f,-1.0f,0.0f}});
                             colors.push_back(current_color*0.84f);
-                            MakeUV(quads.back().GetVertices(Sprite{}));
+                            MakeUV(quads.back().GetVertices(TextureDef{}));
                         }
                         if (Get({x,y,z+1}) == 0)
                         {
                             C3 midpoint = C3{float(x)+0.5f, float(y)+0.5f, float(z+1)};
-                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}});
+                            quads.push_back({midpoint / maxs - offset, 1.0f/maxs, {1.0f,0.0f,0.0f}, {0.0f,-1.0f,0.0f}});
                             colors.push_back(current_color*0.84f);
-                            MakeUV(quads.back().GetVertices(Sprite{}));
+                            MakeUV(quads.back().GetVertices(TextureDef{}));
                         }
                     }
                 }
             }
 
-            for(Color& c: colors)
+            /*for(Color& c: colors)
             {
                 Color total = Color{0.5f,0.2960f,0.2568f}*c.r + Color{0.2568f,0.5f,0.2568f}*c.g + Color{0.2568f,0.2960f,0.5f}*c.b;
                 c = total*(1.0f/1.5f);
-            }
+            }*/
         }
 
 
@@ -244,19 +256,24 @@ namespace Xroads
             std::string filename = voxdir+"/"+voxname+".vox";
             std::vector<u8> data = ReadFile(filename);
 
+            if (data.empty())
+            {
+                Kill(filename + ": vox data empty or file not found.");
+            }
+
             int pos=0;
 
             [[maybe_unused]] u32 chunkname = Read<u32>(data, pos);
             [[maybe_unused]] u32 voxversion = Read<u32>(data, pos);
 
 
-            /*if (chunkname != VOX)
-                cout << "Error loading vox, magic number not found." << endl;*/
+            if (chunkname != VOX)
+                Log("Error loading vox ("+filename+"), magic number not found.");
 
             Chunk mainchunk = LoadChunk(data, pos);
 
-            /*if (mainchunk.name != MAIN)
-                cout << "Error loading vox, first chunk is not MAIN" << endl;*/
+            if (mainchunk.name != MAIN)
+                Log("Error loading vox ("+filename+"), first chunk is not MAIN");
 
             //cout << mainchunk.data.size() << " - " << mainchunk.child.size() << endl;
 
@@ -338,11 +355,11 @@ namespace Xroads
             u32 datasize = Read<u32>(data,pos);
             u32 childsize = Read<u32>(data,pos);
 
-            /*cout << char((chunk.name)&0xFF);
-            cout << char((chunk.name>>8)&0xFF);
-            cout << char((chunk.name>>16)&0xFF);
-            cout << char((chunk.name>>24)&0xFF);
-            cout << ": " << datasize << ", " << childsize << endl;*/
+            //cout << char((chunk.name)&0xFF);
+            //cout << char((chunk.name>>8)&0xFF);
+            //cout << char((chunk.name>>16)&0xFF);
+            //cout << char((chunk.name>>24)&0xFF);
+            //cout << ": " << datasize << ", " << childsize << endl;
 
 
             chunk.data = ReadMany<u8>(data,pos,datasize);
