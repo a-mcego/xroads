@@ -1,0 +1,2 @@
+integrate soloud into xroads, change the x y z parameters to Xr::C3
+integrate glm better, make it use Xr::C3 too.
