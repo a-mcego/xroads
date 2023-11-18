@@ -6,7 +6,7 @@ namespace Xroads
 {
     VectorMap<std::string, GLuint> Shaders::shaders;
 
-    GLuint Shaders::Get(const std::string& name)
+    GLuint Shaders::Get(std::string_view name)
     {
         auto it = shaders.find(name);
         if (it != shaders.end())
@@ -28,7 +28,7 @@ namespace Xroads
         return shaders["none"];
     }
 
-    void Shaders::LoadShaders(const std::string& name)
+    void Shaders::LoadShaders(std::string_view name)
     {
         shaders[name] = Renderer::LoadShader(name);
     }

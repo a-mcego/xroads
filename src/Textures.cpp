@@ -6,7 +6,12 @@ namespace Xroads
 {
     VectorMap<string, u32> Textures::textures;
 
-    GLuint Textures::Get(const std::string& name, WRAP wrap)
+    bool Textures::Has(std::string_view name)
+    {
+        return textures.find(name) != textures.end();
+    }
+
+    GLuint Textures::Get(std::string_view name, WRAP wrap)
     {
         auto it = textures.find(name);
         if (it != textures.end())
@@ -19,16 +24,16 @@ namespace Xroads
         {
             return it->second;
         }
-        it = textures.find("none");
+        it = textures.find("_none");
         if (it != textures.end())
         {
             return it->second;
         }
-        Load("none", wrap);
-        return textures["none"];
+        Load("_none", wrap);
+        return textures["_none"];
     }
 
-    void Textures::Load(const std::string& name, WRAP wrap)
+    void Textures::Load(std::string_view name, WRAP wrap)
     {
         u32 textureID = Renderer::LoadTexture(name, wrap);
         if (textureID == -1)
