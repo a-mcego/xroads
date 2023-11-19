@@ -24,6 +24,8 @@ namespace Xroads
 #undef implement_op
         constexpr Coord2D operator-() const { Coord2D ret = *this; ret.x = -x, ret.y = -y; return ret; }
 
+        constexpr auto operator<=>(const Coord2D& rhs) const = default;
+
         T Length() const
         {
             return sqrt(LengthSq());
@@ -34,9 +36,29 @@ namespace Xroads
             return x*x+y*y;
         }
 
+        constexpr T Dot(const Coord2D& rhs) const
+        {
+            return x*rhs.x+y*rhs.y;
+        }
+
+        constexpr T NormalizedDot(const Coord2D& rhs)
+        {
+            return Normalize().Dot(rhs.Normalize());
+        }
+
         Coord2D Normalize() const
         {
             return (*this) / Length();
+        }
+
+        Coord2D Project(Coord2D projector)
+        {
+            return projector*(Dot(projector)/projector.Dot(projector));
+        }
+
+        Coord2D Reject(Coord2D projector)
+        {
+            return (*this)-Project(projector);
         }
 
         Coord2D NormalizeOrDefault() const
