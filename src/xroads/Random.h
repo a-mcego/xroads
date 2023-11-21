@@ -3,6 +3,7 @@
 #include <random>
 #include <concepts>
 #include <span>
+#include <ranges>
 
 namespace Xroads
 {
@@ -13,6 +14,18 @@ namespace Xroads
     double RandomDouble(double low, double high);
     float RandomFloat();
     float RandomFloat(float low, float high);
+
+    template<typename T>
+    int WeightedChoiceFromData(const std::span<T>& data)
+    {
+        extern std::mt19937 generator;
+        auto GetWeight = [](const T& item)->double {
+            return item.weight;
+        };
+        auto range = data | std::views::transform(GetWeight);
+        std::discrete_distribution<> disc_dist(range.begin(), range.end());
+        return disc_dist(generator);
+    }
 
     template<std::floating_point FP>
     int WeightedChoice(const std::span<FP>& weights)
