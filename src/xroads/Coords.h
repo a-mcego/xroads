@@ -162,6 +162,72 @@ namespace Xroads
         {
             return Normalize().Dot(rhs.Normalize());
         }
+    };
+
+    template<typename T>
+    struct Coord4D
+    {
+        T x{}, y{}, z{}, w{};
+
+#define implement_op(OP)\
+     constexpr Coord4D& operator OP ## = (const Coord4D& rhs) { x OP ## = rhs.x, y OP ## = rhs.y, z OP ## = rhs.z; w OP ## = rhs.w; return *this; }\
+     constexpr Coord4D operator OP (const Coord4D& rhs) const { Coord4D ret = *this; ret OP ## = rhs; return ret; } \
+     constexpr Coord4D& operator OP ## = (const T& rhs) { x OP ## = rhs, y OP ## = rhs, z OP ## = rhs; w OP ## = rhs; return *this; }\
+     constexpr Coord4D operator OP (const T& rhs) const { Coord4D ret = *this; ret OP ## = rhs; return ret; }
+
+        implement_op(+);
+        implement_op(-);
+        implement_op(*);
+        implement_op(/);
+
+#undef implement_op
+        constexpr Coord4D operator-() const { Coord4D ret = *this; ret.x = -x, ret.y = -y, ret.z = -z; ret.w = -w; return ret; }
+
+        constexpr auto operator<=>(const Coord4D& rhs) const = default;
+
+        constexpr T Length() const
+        {
+            return std::sqrt(x*x+y*y+z*z+w*w);
+        }
+
+        constexpr T LengthSq() const
+        {
+            return x*x+y*y+z*z+w*w;
+        }
+
+        constexpr Coord4D Normalize() const
+        {
+            Coord4D t = *this;
+            return t / Length();
+        }
+
+        constexpr Coord4D NormalizeOrDefault() const
+        {
+            auto len = Length();
+            if (len == 0.0f)
+                return Coord4D{0.0f,0.0f,0.0,1.0f};
+            Coord4D t = *this;
+            return t / len;
+        }
+
+        constexpr T Dot(const Coord4D& rhs) const
+        {
+            return x*rhs.x+y*rhs.y+z*rhs.z+w*rhs.w;
+        }
+
+        constexpr T NormalizedDot(const Coord4D& rhs)
+        {
+            return Normalize().Dot(rhs.Normalize());
+        }
+    };
+
+    template<typename T>
+    struct Mat4
+    {
+        std::array<T,16> data{}; //column-major!
+
+
+
 
     };
 
@@ -246,8 +312,10 @@ namespace Xroads
 
     using C2 = Coord2D<float>;
     using C3 = Coord3D<float>;
+    using C4 = Coord4D<float>;
     using C2i = Coord2D<int>;
     using C3i = Coord3D<int>;
+    using C4i = Coord4D<int>;
 
     template<typename T> requires requires(T t){ t.x; t.y; t.z; }
     C3 TriangleNormal(const T& p1, const T& p2, const T& p3)
