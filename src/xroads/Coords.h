@@ -26,12 +26,12 @@ namespace Xroads
 
         constexpr auto operator<=>(const Coord2D& rhs) const = default;
 
-        T Length() const
+        constexpr T Length() const
         {
             return sqrt(LengthSq());
         }
 
-        T LengthSq() const
+        constexpr T LengthSq() const
         {
             return x*x+y*y;
         }
@@ -46,22 +46,22 @@ namespace Xroads
             return Normalize().Dot(rhs.Normalize());
         }
 
-        Coord2D Normalize() const
+        constexpr Coord2D Normalize() const
         {
             return (*this) / Length();
         }
 
-        Coord2D Project(Coord2D projector)
+        constexpr Coord2D Project(Coord2D projector)
         {
             return projector*(Dot(projector)/projector.Dot(projector));
         }
 
-        Coord2D Reject(Coord2D projector)
+        constexpr Coord2D Reject(Coord2D projector)
         {
             return (*this)-Project(projector);
         }
 
-        Coord2D NormalizeOrDefault() const
+        constexpr Coord2D NormalizeOrDefault() const
         {
             auto len = Length();
             if (len == 0.0f)
@@ -70,7 +70,7 @@ namespace Xroads
             return t / len;
         }
 
-        Coord2D Rotate(float angle_radians) const
+        constexpr Coord2D Rotate(float angle_radians) const
         {
             Coord2D ret;
             ret.x = x*cos(angle_radians)-y*sin(angle_radians);
@@ -78,7 +78,7 @@ namespace Xroads
             return ret;
         }
 
-        float ToAngle() const
+        constexpr float ToAngle() const
         {
             return atan2(y, x);
         }
