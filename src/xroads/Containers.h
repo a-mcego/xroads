@@ -34,7 +34,7 @@ namespace Xroads
             if (n < 0 || n >= size())
             {
                 Log("Invalid access with index " + ToString(n) + ", size " + ToString(size()));
-                std::abort();
+                Kill("");
             }
             return v[n];
         }
@@ -171,7 +171,7 @@ namespace Xroads
             if (n < 0 || n >= size())
             {
                 Log("Invalid array access with index " + ToString(n) + ", size " + ToString(SIZE));
-                std::abort();
+                Kill("");
             }
             return v[n];
         }
