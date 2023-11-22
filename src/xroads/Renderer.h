@@ -529,9 +529,15 @@ namespace Xroads
                 }
 
                 if (STAGE(r_i) == STAGE::SHADOW)
+                {
+                    glEnable(GL_BLEND);
                     glDepthMask(GL_FALSE);
+                }
                 else
+                {
+                    glDisable(GL_BLEND);
                     glDepthMask(GL_TRUE);
+                }
 
                 if (STAGE(r_i) == STAGE::HEALTHBAR)
                     glDisable(GL_DEPTH_TEST);
