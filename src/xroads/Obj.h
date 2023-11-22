@@ -58,7 +58,7 @@ namespace Xroads
                         break;
                 }
 
-                auto params = ExplodeCopy(line, ' ');
+                auto params = Explode(line, ' ');
                 if (params[0] == "v")
                 {
                     f32 x = FromString<f32>(params[1]);
@@ -97,7 +97,7 @@ namespace Xroads
 
                         for(int tri_i=0; tri_i<3; ++tri_i)
                         {
-                            std::vector<std::string> vert_info = ExplodeCopy(params.at(tri_indices.at(tri_i)), '/');
+                            auto vert_info = Explode(params.at(tri_indices.at(tri_i)), '/');
                             i32 vert_id = FromString<i32>(vert_info.at(0))-1; //-1 because .obj is 1-based indexing
 
                             uv_id = FromString<i32>(vert_info[1])-1; //-1 because .obj is 1-based indexing

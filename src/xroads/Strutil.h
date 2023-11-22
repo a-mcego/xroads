@@ -122,51 +122,29 @@ namespace Xroads
         return ret;
     }
 
-    inline const std::vector<std::string_view> Explode(const std::string& s, const char& c)
+    inline const std::vector<std::string_view> Explode(std::string_view s, const char& c)
     {
         std::vector<std::string_view> v;
-        std::string_view sv = s;
 
         size_t start=0, len=0;//, i=0;
         for(auto n:s)
         {
-            if(n != c) ++len; else
-            if(n == c && len > 0)
+            ++len;
+            if(n == c)
             {
-                ++len;
-                v.push_back(sv.substr(start, len));
+                v.push_back(s.substr(start, len-1));
                 start += len;
-                len = -1;
+                len = 0;
             }
-            //++i;
         }
-        if(len > 0) v.push_back(sv.substr(start, len+1));
-
-        return v;
-    }
-
-    inline const std::vector<std::string> ExplodeCopy(const std::string& s, const char& c)
-    {
-        std::string buff{""};
-        std::vector<std::string> v;
-
-        for(auto n:s)
-        {
-            if(n != c) buff+=n; else
-            if(n == c && buff != "") { v.push_back(buff); buff = ""; }
-        }
-        if(buff != "") v.push_back(buff);
-
+        v.push_back(s.substr(start));
         return v;
     }
 
     template<typename T>
-    T FromString(const std::string& key)
+    T FromString(std::string_view key)
     {
-        if constexpr(std::is_same_v<T,const std::string&>)
-            return key;
-
-        std::stringstream sstr(key);
+        std::stringstream sstr{std::string{key}};
         T ret;
         sstr >> ret;
         return ret;
