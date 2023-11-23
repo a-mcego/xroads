@@ -127,7 +127,6 @@ namespace Xroads
                     uv += C2{0.71f,0.71f}*vert.z;
 
                     uv *= 0.3f;
-
                     uvback.push_back(uv);
                 }
             };
@@ -191,6 +190,7 @@ namespace Xroads
                 }
             }
 
+            //TODO: add back conditionally
             /*for(Color& c: colors)
             {
                 Color total = Color{0.5f,0.2960f,0.2568f}*c.r + Color{0.2568f,0.5f,0.2568f}*c.g + Color{0.2568f,0.2960f,0.5f}*c.b;
@@ -257,25 +257,20 @@ namespace Xroads
             std::vector<u8> data = ReadFile(filename);
 
             if (data.empty())
-            {
                 Kill(filename + ": vox data empty or file not found.");
-            }
 
             int pos=0;
 
             [[maybe_unused]] u32 chunkname = Read<u32>(data, pos);
             [[maybe_unused]] u32 voxversion = Read<u32>(data, pos);
 
-
             if (chunkname != VOX)
-                Log("Error loading vox ("+filename+"), magic number not found.");
+                Kill("Error loading vox ("+filename+"), magic number not found.");
 
             Chunk mainchunk = LoadChunk(data, pos);
 
             if (mainchunk.name != MAIN)
-                Log("Error loading vox ("+filename+"), first chunk is not MAIN");
-
-            //cout << mainchunk.data.size() << " - " << mainchunk.child.size() << endl;
+                Kill("Error loading vox ("+filename+"), first chunk is not MAIN");
 
             std::vector<Chunk> chunks;
 
@@ -288,7 +283,7 @@ namespace Xroads
             }
 
             VoxModel m;
-            for(int ch_i=0; ch_i<chunks.size(); ++ch_i)
+            for(int ch_i=0; ch_i<chunks.size()-1; ++ch_i)
             {
                 if (chunks[ch_i].name != SIZE)
                     continue;
@@ -304,13 +299,8 @@ namespace Xroads
                 size.y = ReadAbs<u32>(size_c.data,4);
                 size.z = ReadAbs<u32>(size_c.data,8);
 
-                //cout << "Model found, size " << size.x << "x" << size.y << "x" << size.z << endl;
-
-
                 m.SetSize(size);
-
                 int model_c_pos=0;
-
                 int n_vertices = Read<u32>(model_c.data, model_c_pos);
 
                 for(int v_i=0; v_i<n_vertices; ++v_i)
@@ -322,8 +312,6 @@ namespace Xroads
 
                     m.Set(C3i(x,y,z), c+1);
                 }
-
-
                 break;
             }
             for(int ch_i=0; ch_i<chunks.size(); ++ch_i)
@@ -337,15 +325,9 @@ namespace Xroads
                     m.palette[p_i] = ReadAbs<u32>(pal.data, p_i*4);
             }
 
-            //auto quads = m.GetModel();
-
-            //cout << quads.size() << " quads done." << endl;
-
             m.FinalizeModel(centering);
-
             return m;
         }
-
 
         static Chunk LoadChunk(std::vector<u8>& data, int& pos)
         {
@@ -354,13 +336,6 @@ namespace Xroads
 
             u32 datasize = Read<u32>(data,pos);
             u32 childsize = Read<u32>(data,pos);
-
-            //cout << char((chunk.name)&0xFF);
-            //cout << char((chunk.name>>8)&0xFF);
-            //cout << char((chunk.name>>16)&0xFF);
-            //cout << char((chunk.name>>24)&0xFF);
-            //cout << ": " << datasize << ", " << childsize << endl;
-
 
             chunk.data = ReadMany<u8>(data,pos,datasize);
             chunk.child = ReadMany<u8>(data,pos,childsize);
