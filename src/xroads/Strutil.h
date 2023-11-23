@@ -187,16 +187,9 @@ namespace Xroads
 
 namespace std
 {
-    template <> struct hash<Xroads::SmallString<32>>
+    template <size_t SIZE> struct hash<Xroads::SmallString<SIZE>>
     {
-        size_t operator()(const Xroads::SmallString<32>& x) const
-        {
-            return std::hash<std::string_view>()(std::string_view(x));
-        }
-    };
-    template <> struct hash<Xroads::SmallString<16>>
-    {
-        size_t operator()(const Xroads::SmallString<16>& x) const
+        size_t operator()(const Xroads::SmallString<SIZE>& x) const
         {
             return std::hash<std::string_view>()(std::string_view(x));
         }
