@@ -63,11 +63,11 @@ namespace Xroads
 
         constexpr Coord2D NormalizeOrDefault() const
         {
-            auto len = Length();
+            auto len = LengthSq();
             if (len == 0.0f)
                 return Coord2D{1.0f,0.0f};
             Coord2D t = *this;
-            return t / len;
+            return t / sqrt(len);
         }
 
         constexpr Coord2D Rotate(float angle_radians) const
@@ -137,11 +137,11 @@ namespace Xroads
 
         constexpr Coord3D NormalizeOrDefault() const
         {
-            auto len = Length();
+            auto len = LengthSq();
             if (len == 0.0f)
                 return Coord3D{0.0f,0.0f,1.0f};
             Coord3D t = *this;
-            return t / len;
+            return t / sqrt(len);
         }
 
         constexpr Coord3D Cross(const Coord3D& rhs) const
@@ -203,11 +203,11 @@ namespace Xroads
 
         constexpr Coord4D NormalizeOrDefault() const
         {
-            auto len = Length();
+            auto len = LengthSq();
             if (len == 0.0f)
                 return Coord4D{0.0f,0.0f,0.0,1.0f};
             Coord4D t = *this;
-            return t / len;
+            return t / sqrt(len);
         }
 
         constexpr T Dot(const Coord4D& rhs) const
