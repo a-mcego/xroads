@@ -331,9 +331,23 @@ namespace Xroads
     }
 
     template<typename T>
+    std::ostream& operator<<(std::ostream& o, const Xroads::Coord2D<T>& c)
+    {
+        o << '(' << c.x << ' ' << c.y << ')';
+        return o;
+    }
+
+    template<typename T>
     std::ostream& operator<<(std::ostream& o, const Xroads::Coord3D<T>& c)
     {
         o << '(' << c.x << ' ' << c.y << ' ' << c.z << ')';
+        return o;
+    }
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& o, const Xroads::Coord4D<T>& c)
+    {
+        o << '(' << c.x << ' ' << c.y << ' ' << c.z << ' ' << c.w << ')';
         return o;
     }
 }
