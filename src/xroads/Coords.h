@@ -310,12 +310,17 @@ namespace Xroads
         return ret;
     }
 
-    using C2 = Coord2D<float>;
-    using C3 = Coord3D<float>;
-    using C4 = Coord4D<float>;
-    using C2i = Coord2D<int>;
-    using C3i = Coord3D<int>;
-    using C4i = Coord4D<int>;
+    using C2 = Coord2D<f32>;
+    using C3 = Coord3D<f32>;
+    using C4 = Coord4D<f32>;
+
+    using C2i = Coord2D<i32>;
+    using C3i = Coord3D<i32>;
+    using C4i = Coord4D<i32>;
+
+    using C2u = Coord2D<u32>;
+    using C3u = Coord3D<u32>;
+    using C4u = Coord4D<u32>;
 
     template<typename T> requires requires(T t){ t.x; t.y; t.z; }
     C3 TriangleNormal(const T& p1, const T& p2, const T& p3)
