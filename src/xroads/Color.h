@@ -12,7 +12,7 @@ namespace Xroads
         {
             return ColorType<float>{r,g,b,a};
         }
-#if defined(__STDCPP_BFLOAT16_T__)
+#if defined(XROADS_BFLOAT16)
         operator ColorType<bf16>() const requires (!std::same_as<T,bf16>)
         {
             return ColorType<bf16>{bf16(r),bf16(g),bf16(b),bf16(a)};
@@ -50,7 +50,7 @@ namespace Xroads
 
     const Color COLOR_WHITE = Color{1.0f,1.0f,1.0f,1.0f};
     const Color COLOR_BLACK = Color{0.0f,0.0f,0.0f,1.0f};
-#if defined(__STDCPP_BFLOAT16_T__)
+#if defined(XROADS_BFLOAT16)
     const Color_bf COLOR_BF_WHITE = Color_bf{1.0bf16,1.0bf16,1.0bf16,1.0bf16};
     const Color_bf COLOR_BF_BLACK = Color_bf{0.0bf16,0.0bf16,0.0bf16,1.0bf16};
 #else

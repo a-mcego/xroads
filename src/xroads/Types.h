@@ -1,7 +1,11 @@
 #pragma once
 
-#include <cstdint>
 #if defined(__STDCPP_BFLOAT16_T__)
+//#define XROADS_BFLOAT16
+#endif // defined
+
+#include <cstdint>
+#if defined(XROADS_BFLOAT16)
 #include <stdfloat>
 #endif
 
@@ -17,7 +21,7 @@ namespace Xroads
     using i64 = int64_t;
     using f32 = float;
     using f64 = double;
-#if defined(__STDCPP_BFLOAT16_T__)
+#if defined(XROADS_BFLOAT16)
     using bf16 = std::bfloat16_t;
 #define BF16_LIT(x) x ## bf16
 #else
