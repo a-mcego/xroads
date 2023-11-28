@@ -6,10 +6,10 @@ namespace Xroads
     template<typename T> T Max(const T& a, const T& b) { return (a>b?a:b); }
 
     template<typename T>
-    T Lerp(const T& lhs, const T& rhs, float amount)
+    T Lerp(const T& lhs, const T& rhs, f32 amount)
     { return lhs*(1.0-amount)+rhs*amount; }
 
-    template <typename T> int Sign(T val)
+    template <typename T> i32 Sign(T val)
     { return (T{} < val) - (val < T{}); }
 
     template<typename T> T Abs(const T& val) { if (val<T()) return -val; return val; }
@@ -41,7 +41,7 @@ namespace Xroads
     template<typename T>
     struct Damped
     {
-        float damping{};
+        f32 damping{};
         T target{};
 
         void Update()

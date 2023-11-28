@@ -66,10 +66,10 @@ namespace Xroads
 
     struct MinMaxCoord
     {
-        MaxValue<float> maxx, maxy;
-        MinValue<float> minx, miny;
+        MaxValue<f32> maxx, maxy;
+        MinValue<f32> minx, miny;
 
-        void Add(const Coord2D<float>& f)
+        void Add(const Coord2D<f32>& f)
         {
             maxx.Set(f.x);
             minx.Set(f.x);

@@ -10,16 +10,16 @@ namespace Xroads
     void SeedRandom(u32 n);
     u32 Random();
     u32 Random(u32 low, u32 high); //range inclusive
-    double RandomDouble();
-    double RandomDouble(double low, double high);
-    float RandomFloat();
-    float RandomFloat(float low, float high);
+    f64 RandomDouble();
+    f64 RandomDouble(f64 low, f64 high);
+    f32 RandomFloat();
+    f32 RandomFloat(f32 low, f32 high);
 
     template<typename T>
-    int WeightedChoiceFromData(const std::span<T>& data)
+    i32 WeightedChoiceFromData(const std::span<T>& data)
     {
         extern std::mt19937 generator;
-        auto GetWeight = [](const T& item)->double {
+        auto GetWeight = [](const T& item)->f64 {
             return item.weight;
         };
         auto range = data | std::views::transform(GetWeight);
@@ -28,7 +28,7 @@ namespace Xroads
     }
 
     template<std::floating_point FP>
-    int WeightedChoice(const std::span<FP>& weights)
+    i32 WeightedChoice(const std::span<FP>& weights)
     {
         extern std::mt19937 generator;
         if (weights.empty())
@@ -39,15 +39,15 @@ namespace Xroads
 
     //in, a,b ]0,1]
     //out, two normally distributed values
-    std::pair<double,double> RandomNormal(double a, double b, double sigma);
-    double RandomNormal(double sigma=1.0);
+    std::pair<f64,f64> RandomNormal(f64 a, f64 b, f64 sigma);
+    f64 RandomNormal(f64 sigma=1.0);
 
     //from https://vcg.isti.cnr.it/activities/OLD/geometryegraphics/pointintetraedro.html
     inline C3 RandomPointInTetrahedron(const C3& p1, const C3& p2, const C3& p3, const C3& p4)
     {
-        double s = RandomDouble();
-        double t = RandomDouble();
-        double u = RandomDouble();
+        f64 s = RandomDouble();
+        f64 t = RandomDouble();
+        f64 u = RandomDouble();
         if(s+t>1.0)
         {
             s = 1.0 - s;
@@ -55,18 +55,18 @@ namespace Xroads
         }
         if(t+u>1.0)
         {
-            double tmp = u;
+            f64 tmp = u;
             u = 1.0 - s - t;
             t = 1.0 - tmp;
 
         }
         else if(s+t+u>1.0)
         {
-            double tmp = u;
+            f64 tmp = u;
             u = s + t + u - 1.0;
             s = 1.0 - t - tmp;
         }
-        double a = 1.0-s-t-u;
+        f64 a = 1.0-s-t-u;
         return p1*a + p2*s + p3*t + p4*u;
     }
 }
