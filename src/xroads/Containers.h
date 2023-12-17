@@ -3,8 +3,11 @@
 #include <vector>
 #include <array>
 #include <utility>
+#include <unordered_map>
+#include <map>
 
 #include "Strutil.h"
+#include "Option.h"
 
 namespace Xroads
 {
@@ -46,6 +49,40 @@ namespace Xroads
                 sum += v.at(i);
             return sum;
         }
+    };
+
+    template<typename Key, typename Value, typename Hash = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
+    struct Hashmap
+    {
+    private:
+        std::unordered_map<Key, Value, Hash, KeyEqual> data;
+
+    public:
+        Value& GetOrInsert(const Key& key) { return data[key]; }
+        OptionRef<Value> Get(const Key& key)
+        {
+            auto iter = data.find(key);
+            if (iter == data.end())
+                return {};
+            return {iter->second};
+        };
+        OptionCRef<Value> Get(const Key& key) const
+        {
+            auto iter = data.find(key);
+            if (iter == data.end())
+                return {};
+            return {iter->second};
+        };
+        bool Has(const Key& key) const { return data.contains(key); }
+        void Clear() { data.clear(); }
+
+        Value& operator[](const Key& key) { return GetOrInsert(key); }
+        auto begin() { return data.begin(); }
+        auto end() { return data.end(); }
+        auto begin() const { return data.begin(); }
+        auto end() const { return data.end(); }
+        auto cbegin() const { return data.cbegin(); }
+        auto cend() const { return data.cend(); }
     };
 
     template<typename T>
