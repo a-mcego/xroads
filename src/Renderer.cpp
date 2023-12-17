@@ -13,15 +13,15 @@ namespace Xroads
     i64 Renderer::trianglecount = 0;
     int Renderer::searches = 0;
     int Renderer::getvecs = 0;
-    int Renderer::n_lights_last_frame = 0;
+    //int Renderer::n_lights_last_frame = 0;
     Renderer::Options Renderer::options{};
     CENTERING Renderer::current_centering = CENTERING::XYZ;
-    std::vector<std::string> Renderer::light_uniform_names;
+    //std::vector<std::string> Renderer::light_uniform_names;
 
     std::array<std::vector<Renderer::RenderList>,int(Renderer::STAGE::N)> Renderer::renderlists;
-    std::array<std::vector<Renderer::LightDef>,3> Renderer::lights;
+    //std::array<std::vector<Renderer::LightDef>,3> Renderer::lights;
 
-    std::map<ModelID, Renderer::ModelQueueData> Renderer::modelqueue, Renderer::modelqueueUI;
+    std::map<ModelID, Renderer::ModelQueueData> Renderer::modelqueue, Renderer::modelqueueUI, Renderer::modelqueue_lightvolume;
     std::array<glm::mat4,int(Renderer::CAMERA::N)> Renderer::Vs, Renderer::Ps;
     std::array<C3,int(Renderer::CAMERA::N)> Renderer::Vs_normal;
     GLuint Renderer::modelVBO[2];
@@ -29,15 +29,28 @@ namespace Xroads
     std::vector<Renderer::Model> Renderer::models;
     std::map<std::string, ModelID, StringLessThan> Renderer::model_ids;
 
-    GLuint Renderer::gBuffer{}, Renderer::gPosition{}, Renderer::gNormal{}, Renderer::gAlbedoSpec{}, Renderer::gColorSpec{}, Renderer::rboDepth{}, Renderer::gBright{}, Renderer::gNormalOut{};
-    GLuint Renderer::quadVAO{}, Renderer::quadVBO{}, Renderer::fbSecond{};
+    GLuint Renderer::gBuffer{}, Renderer::gPosition{}, Renderer::gNormal{}, Renderer::gAlbedoSpec{}, Renderer::gColorSpec{}, Renderer::rboDepth{}, Renderer::gBright{}, Renderer::gNormalOut{}, Renderer::gLighting;
+    GLuint Renderer::quadVAO{}, Renderer::quadVBO{}, Renderer::fbSecond{}, Renderer::fbLighting{};
     Renderer::FBTex Renderer::pingpong[2];
+
+    C2i Renderer::current_resolution{1,1};
+
+    void Renderer::QueueLight(const C3& pos, const Color& color, f32 intensity)
+    {
+        //lights.at(priority).push_back({pos, color*2.0f, intensity});
+        float extent = std::sqrt((1.0f/0.025f-1.0f)/intensity)*2.0f; //2.0 for obj loading scaling
+        glm::mat4 Mmat(1.0f);
+        Mmat[0][0] = extent;
+        Mmat[1][1] = extent;
+        Mmat[2][2] = extent;
+        Mmat[3] = glm::vec4(pos.x, pos.y, pos.z, intensity);
+        QueueModel(modelqueue_lightvolume, "lightvolume"_sm, 0, Mmat, color);
+    }
 
     u32 Renderer::LoadTexture(std::string_view name, WRAP wrap)
     {
         std::string imagepath = std::string("textures/") + std::string(name) + ".png";
-        FILE *fp;
-        fp = fopen(imagepath.c_str(), "rb");
+        FILE* fp = fopen(imagepath.c_str(), "rb");
         if (fp == NULL)
         {
             Log("Texture "+imagepath+" not found");
@@ -52,14 +65,9 @@ namespace Xroads
             return -1;
         }
 
-        vector<unsigned char> data{data_ptr, data_ptr+x*y*n};
-
         //cout << "Loaded image " << imagepath << " with xyn " << x << " " << y << " " << n << endl;
 
-        stbi_image_free(data_ptr);
-
         unsigned int components = n;
-
         unsigned int gl_format = 0, gl_internal_format = 0;
         switch(components)
         {
@@ -81,7 +89,8 @@ namespace Xroads
         glBindTexture(GL_TEXTURE_2D, textureID);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, x, y, 0, gl_format, GL_UNSIGNED_BYTE, &data[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, x, y, 0, gl_format, GL_UNSIGNED_BYTE, data_ptr);
+        stbi_image_free(data_ptr);
 
         if (name == "_mainfont_scifi" || name == "_mainfont")
         {
@@ -90,8 +99,8 @@ namespace Xroads
         }
         else
         {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8);
         if (wrap == WRAP::YES)

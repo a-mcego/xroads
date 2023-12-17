@@ -117,19 +117,15 @@ namespace Xroads
 
         static std::array<std::vector<RenderList>,i32(STAGE::N)> renderlists;
 
-        struct LightDef
+        /*struct LightDef
         {
             C3 pos;
             Color color;
-            f32 linear{};
-            f32 quadratic{};
-        };
-        static i32 n_lights_last_frame;
-        static std::array<std::vector<LightDef>,3> lights;
-        static void QueueLight(int priority, const C3& pos, const Color& color, f32 linear, f32 quadratic)
-        {
-            lights.at(priority).push_back({pos, color*2.0f, linear*0.1f, quadratic*0.01f});
-        }
+            f32 intensity{};
+        };*/
+        //static i32 n_lights_last_frame;
+        //static std::array<std::vector<LightDef>,3> lights;
+        static void QueueLight(const C3& pos, const Color& color, f32 intensity);
         static void Flash(Color color, f32 amount)
         {
             options.flash_color = color;
@@ -145,6 +141,8 @@ namespace Xroads
 
         static std::array<glm::mat4,i32(CAMERA::N)> Vs, Ps; //transforms for each camera
         static std::array<C3,i32(CAMERA::N)> Vs_normal;
+
+        static C2i current_resolution;
 
 
         struct Model
@@ -254,18 +252,27 @@ namespace Xroads
             }
         };
 
-        static std::map<ModelID, ModelQueueData> modelqueue, modelqueueUI;
-        static void Queue(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+        static std::map<ModelID, ModelQueueData> modelqueue, modelqueueUI, modelqueue_lightvolume;
+
+        static void QueueModel(std::map<ModelID, ModelQueueData>& mqd_origin, std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
         {
-            auto& mqd = modelqueue[GetModelID(modelname, texture_id)];
+            auto& mqd = mqd_origin[GetModelID(modelname, texture_id)];
             mqd.colors.push_back(color);
             mqd.matrices.push_back(M_matrix);
         }
+        static void Queue(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+        {
+            QueueModel(modelqueue,modelname,texture_id,M_matrix,color);
+            //auto& mqd = modelqueue[GetModelID(modelname, texture_id)];
+            //mqd.colors.push_back(color);
+            //mqd.matrices.push_back(M_matrix);
+        }
         static void QueueUI(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
         {
-            auto& mqd = modelqueueUI[GetModelID(modelname, texture_id)];
-            mqd.colors.push_back(color);
-            mqd.matrices.push_back(M_matrix);
+            QueueModel(modelqueueUI,modelname,texture_id,M_matrix,color);
+            //auto& mqd = modelqueueUI[GetModelID(modelname, texture_id)];
+            //mqd.colors.push_back(color);
+            //mqd.matrices.push_back(M_matrix);
         }
 
         static void ChangeBuffer(int buffer_id)
@@ -277,7 +284,7 @@ namespace Xroads
             glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(f32)));
         }
 
-        static std::vector<std::string> light_uniform_names;
+        //static std::vector<std::string> light_uniform_names;
 
         static void Init()
         {
@@ -318,12 +325,12 @@ namespace Xroads
 
             glEnable(GL_CULL_FACE);
 
-            light_uniform_names.clear();
+            /*light_uniform_names.clear();
             for(int i=0; i<200; ++i)
             {
                 light_uniform_names.push_back("lights[" + std::to_string(i) + "].Position");
                 light_uniform_names.push_back("lights[" + std::to_string(i) + "].Color");
-            }
+            }*/
         }
 
         static void SetV(CAMERA camera, const glm::mat4& mat, const C3& normal)
@@ -359,7 +366,6 @@ namespace Xroads
             stage_lists.push_back(RenderList{ .texture = texture, .texture2 = texture2, .shader = shader, .vertices{} });
             return stage_lists.back().vertices;
         }
-
 
         static void Queue(const IsShape auto& quad, const C3& normal, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
         {
@@ -441,9 +447,10 @@ namespace Xroads
             enum struct LIGHTING
             {
                 LOW,
+                MEDIUM,
                 HIGH,
                 N
-            } lighting{LIGHTING::LOW};
+            } lighting{LIGHTING::MEDIUM};
 
             f32 aberration{0.0f};
             i32 maxlights{16};
@@ -455,11 +462,22 @@ namespace Xroads
             Color flash_color{};
             i32 bloom_amount{0};
 
+            int GetLightDivisor()
+            {
+                if (lighting == LIGHTING::LOW)
+                    return 16;
+                if (lighting == LIGHTING::MEDIUM)
+                    return 4;
+                return 1;
+            }
+
             std::string GetShaderDefines()
             {
                 std::string ret;
                 if (lighting == LIGHTING::LOW)
                     ret += "#define LIGHTING_LOW\n";
+                else if (lighting == LIGHTING::MEDIUM)
+                    ret += "#define LIGHTING_MEDIUM\n";
                 else if (lighting == LIGHTING::HIGH)
                     ret += "#define LIGHTING_HIGH\n";
                 return ret;
@@ -474,11 +492,11 @@ namespace Xroads
         };
 
         static FBTex pingpong[2];
-        static GLuint gBuffer, gPosition, gNormal, gColorSpec, rboDepth, gAlbedoSpec, gBright, gNormalOut, fbSecond;
+        static GLuint gBuffer, gPosition, gNormal, gColorSpec, rboDepth, gAlbedoSpec, gBright, gNormalOut, gLighting, fbSecond, fbLighting;
         static GLuint modelVBO[2];
         static void Render()
         {
-            auto GetLightAmount = []()->int
+            /*auto GetLightAmount = []()->int
             {
                 int total=0;
                 for(auto& l: lights)
@@ -495,7 +513,7 @@ namespace Xroads
                     index -= l.size();
                 }
                 std::unreachable();
-            };
+            };*/
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -531,18 +549,20 @@ namespace Xroads
                 if (STAGE(r_i) == STAGE::SHADOW)
                 {
                     glEnable(GL_BLEND);
+                    glBlendFunc(GL_ONE, GL_ONE); // Additive blending
+                    glBlendEquation(GL_FUNC_ADD);
                     glDepthMask(GL_FALSE);
+                }
+                else if (STAGE(r_i) == STAGE::HEALTHBAR)
+                {
+                    glDisable(GL_BLEND);
+                    glDepthMask(GL_TRUE);
+                    glDisable(GL_DEPTH_TEST);
                 }
                 else
                 {
                     glDisable(GL_BLEND);
                     glDepthMask(GL_TRUE);
-                }
-
-                if (STAGE(r_i) == STAGE::HEALTHBAR)
-                    glDisable(GL_DEPTH_TEST);
-                else
-                {
                     glEnable(GL_DEPTH_TEST);
                     glDepthFunc(GL_LESS);
                 }
@@ -584,7 +604,7 @@ namespace Xroads
                     Uniform(a.shader, "Vs", Vs[int(STAGE_TO_CAMERA[r_i])]);
                     Uniform(a.shader, "Ps", Ps[int(STAGE_TO_CAMERA[r_i])]);
 
-                    if (options.lighting == Options::LIGHTING::LOW)
+                    /*if (options.lighting == Options::LIGHTING::LOW)
                     {
                         std::cout << "Lights low!" << std::endl;
                         const int N_MAX_LIGHTS = options.maxlights;
@@ -595,11 +615,11 @@ namespace Xroads
                         for (unsigned int i = 0; i < lights_this_frame; i++)
                         {
                             auto& light = GetLight(i);
-                            Uniform(a.shader, light_uniform_names[i*2], light.pos.x, light.pos.y, light.pos.z);
+                            Uniform(a.shader, light_uniform_names[i*2], light.pos.x, light.pos.y, light.pos.z, light.intensity);
                             Uniform(a.shader, light_uniform_names[i*2+1], light.color.r, light.color.g, light.color.b);
                         }
                         Uniform(a.shader, "n_lights",lights_this_frame);
-                    }
+                    }*/
 
                     glBufferSubData(GL_ARRAY_BUFFER, 0, a.vertices.size()*sizeof(Vertex),(void*)a.vertices.data());
                     glDrawArrays(GL_TRIANGLES, 0, a.vertices.size());
@@ -619,8 +639,11 @@ namespace Xroads
                     glUseProgram(default_shader_id);
                     Uniform(default_shader_id, "Ps", Ps[int(STAGE_TO_CAMERA[r_i])]);
                     Uniform(default_shader_id, "Vs", Vs[int(STAGE_TO_CAMERA[r_i])]);
+
                     for(auto& [id, mdq]: modelqueue)
                     {
+                        if (mdq.colors.empty())
+                            continue;
                         Renderer::Model& m = models[id];
                         ChangeBuffer(m.vertexbuffer);
 
@@ -641,6 +664,58 @@ namespace Xroads
 
             }
 
+
+            {
+                glViewport(0, 0, current_resolution.x/options.GetLightDivisor(), current_resolution.y/options.GetLightDivisor());
+                glBindFramebuffer(GL_FRAMEBUFFER, fbLighting);
+                glDisable(GL_DEPTH_TEST);
+                glDepthMask(GL_FALSE);
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_ONE, GL_ONE); // Additive blending
+                glBlendEquation(GL_FUNC_ADD);
+
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                auto XrglBufferDataFromVector = [](GLuint buf, const auto& vec)
+                {
+                    glBindBuffer(GL_ARRAY_BUFFER, buf);
+                    glBufferData(GL_ARRAY_BUFFER, sizeof(typename std::remove_cvref<decltype(vec)>::type::value_type)*vec.size(), vec.data(), GL_DYNAMIC_DRAW);
+                };
+
+                GLuint lv_shader_id = Shaders::Get("lightvolume");
+                glUseProgram(lv_shader_id);
+                Uniform(lv_shader_id, "gPosition_sampler", 0);
+                Uniform(lv_shader_id, "gNormal_sampler", 1);
+                Uniform(lv_shader_id, "gDiffuse_sampler", 2);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, gPosition);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, gNormal);
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, gColorSpec);
+
+                Uniform(lv_shader_id, "Ps", Ps[int(CAMERA::PERSPECTIVE)]);
+                Uniform(lv_shader_id, "Vs", Vs[int(CAMERA::PERSPECTIVE)]);
+                Uniform(lv_shader_id, "inv_texsize", 1.0f/f32(current_resolution.x/options.GetLightDivisor()), 1.0f/f32(current_resolution.y/options.GetLightDivisor()));
+                for(auto& [id, mdq]: modelqueue_lightvolume)
+                {
+                    Renderer::Model& m = models[id];
+                    ChangeBuffer(m.vertexbuffer);
+
+                    XrglBufferDataFromVector(modelVBO[0], mdq.matrices);
+                    XrglBufferDataFromVector(modelVBO[1], mdq.colors);
+
+                    glDrawArraysInstanced(GL_TRIANGLES, 0, m.vertices.size(), mdq.colors.size());
+                    trianglecount += m.vertices.size()/3ULL*mdq.colors.size();
+                    mdq.clear();
+                }
+                glDisable(GL_BLEND);
+                glEnable(GL_DEPTH_TEST);
+                glDepthMask(GL_TRUE);
+                glViewport(0, 0, current_resolution.x, current_resolution.y);
+            }
+
+
             glBindFramebuffer(GL_FRAMEBUFFER, fbSecond);
 
             // 2. lighting pass: calculate lighting by iterating over a screen filled quad pixel-by-pixel using the gbuffer's content.
@@ -655,6 +730,7 @@ namespace Xroads
             Uniform(deferred_program_id, "gPosition", 0);
             Uniform(deferred_program_id, "gNormal", 1);
             Uniform(deferred_program_id, "gAlbedoSpec", 2);
+            Uniform(deferred_program_id, "gLighting", 3);
             Uniform(deferred_program_id, "fog_attributes", options.fog_color.r, options.fog_color.g, options.fog_color.b, options.fog_intensity);
             Uniform(deferred_program_id, "normal_smoothing_n", options.normal_smoothing_n);
             Uniform(deferred_program_id, "occlusion_n", options.occlusion_n);
@@ -665,29 +741,34 @@ namespace Xroads
             glBindTexture(GL_TEXTURE_2D, gNormal);
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, gLighting);
 
             Uniform(deferred_program_id, "aberration", options.aberration);
 
-            if (options.lighting == Options::LIGHTING::HIGH)
-            {
-                const int N_MAX_LIGHTS = options.maxlights;
+            //if (options.lighting == Options::LIGHTING::HIGH)
+            //{
+                /*const int N_MAX_LIGHTS = options.maxlights;
                 // send light relevant uniforms
                 Uniform(deferred_program_id, "Vs", Vs[int(CAMERA::PERSPECTIVE)]);
                 n_lights_last_frame = 0;
                 for (unsigned int i = 0; i < Min(N_MAX_LIGHTS,GetLightAmount()); i++)
                 {
                     auto& light = GetLight(i);
-                    Uniform(deferred_program_id, light_uniform_names[i*2], light.pos.x, light.pos.y, light.pos.z);
+                    Uniform(deferred_program_id, light_uniform_names[i*2], light.pos.x, light.pos.y, light.pos.z, light.intensity);
                     Uniform(deferred_program_id, light_uniform_names[i*2+1], light.color.r, light.color.g, light.color.b);
                     ++n_lights_last_frame;
                 }
-                Uniform(deferred_program_id, "n_lights", Min(N_MAX_LIGHTS,GetLightAmount()));
-            }
+                Uniform(deferred_program_id, "n_lights", Min(N_MAX_LIGHTS,GetLightAmount()));*/
+            //}
             //shaderLightingPass.setVec3("viewPos", camera.Position);
-            for(auto& l: lights)
-                l.clear();
+            //for(auto& l: lights)
+            //    l.clear();
             // finally render quad
             renderQuad();
+
+
+
 
             // 2.5. copy content of geometry's depth buffer to default framebuffer's depth buffer
             // ----------------------------------------------------------------------------------
@@ -761,7 +842,7 @@ namespace Xroads
             {
                 auto& renderlist = renderlists[r_i];
 
-                switch(CAMERA(STAGE_TO_CAMERA[r_i]))
+                /*switch(CAMERA(STAGE_TO_CAMERA[r_i]))
                 {
                 case CAMERA::ORTHO:
                     glDisable(GL_DEPTH_TEST);
@@ -772,7 +853,7 @@ namespace Xroads
                     glDepthFunc(GL_LESS);
                     break;
                 default:;
-                }
+                }*/
 
                 if (STAGE(r_i) == STAGE::HEALTHBAR)
                 {
@@ -844,12 +925,14 @@ namespace Xroads
 
         static void ResolutionChange(const C2i& new_resolution)
         {
-            int display_x=new_resolution.x, display_y=new_resolution.y;
+            current_resolution = new_resolution;
             //glfwGetFramebufferSize(glfw_window, &display_x, &display_y);
             //std::cout << "Resolution change: " << display_x << "x" << display_y << std::endl;
-            glViewport(0, 0, display_x, display_y);
+            glViewport(0, 0, current_resolution.x, current_resolution.y);
 
-            for (unsigned int i = 0; i < 2; i++)
+            GLuint attachments[8] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
+
+            for (int i=0; i<2; ++i)
             {
                 glGenFramebuffers(1, &pingpong[i].FBO);
                 glGenTextures(1, &pingpong[i].buffer);
@@ -857,7 +940,7 @@ namespace Xroads
                 glBindFramebuffer(GL_FRAMEBUFFER, pingpong[i].FBO);
                 glBindTexture(GL_TEXTURE_2D, pingpong[i].buffer);
                 glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL
+                    GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL
                 );
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -876,7 +959,7 @@ namespace Xroads
             // - position color buffer
             glGenTextures(1, &gPosition);
             glBindTexture(GL_TEXTURE_2D, gPosition);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
@@ -884,7 +967,7 @@ namespace Xroads
             // - normal color buffer
             glGenTextures(1, &gNormal);
             glBindTexture(GL_TEXTURE_2D, gNormal);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, current_resolution.x, current_resolution.y, 0, GL_RGB, GL_FLOAT, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -894,37 +977,43 @@ namespace Xroads
             // - color + specular color buffer
             glGenTextures(1, &gAlbedoSpec);
             glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
-
-            {
-                GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-                glDrawBuffers(3, attachments);
-            }
+            glDrawBuffers(3, attachments);
 
             // create and attach depth buffer (renderbuffer)
             glGenRenderbuffers(1, &rboDepth);
             glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, display_x, display_y);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, current_resolution.x, current_resolution.y);
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
             // finally check if framebuffer is complete
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                Log("Framebuffer not complete!");
+                Kill("Framebuffer 1 not complete!");
 
+            glGenFramebuffers(1, &fbLighting);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbLighting);
+
+            // - lighting buffer
+            glGenTextures(1, &gLighting);
+            glBindTexture(GL_TEXTURE_2D, gLighting);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x/options.GetLightDivisor(), current_resolution.y/options.GetLightDivisor(), 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gLighting, 0);
+            glDrawBuffers(1, attachments);
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                Kill("Framebuffer 2 not complete!");
 
             glGenFramebuffers(1, &fbSecond);
             glBindFramebuffer(GL_FRAMEBUFFER, fbSecond);
-            {
-                GLuint attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-                glDrawBuffers(2, attachments);
-            }
+            glDrawBuffers(2, attachments);
 
             // - bright color buffer
             glGenTextures(1, &gBright);
             glBindTexture(GL_TEXTURE_2D, gBright);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -934,11 +1023,13 @@ namespace Xroads
             // - normie color buffer
             glGenTextures(1, &gNormalOut);
             glBindTexture(GL_TEXTURE_2D, gNormalOut);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, display_x, display_y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormalOut, 0);
 
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                Kill("Framebuffer 3 not complete!");
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
