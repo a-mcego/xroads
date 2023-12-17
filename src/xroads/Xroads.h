@@ -61,6 +61,7 @@ namespace Xroads
 #include "Shaders.h"
 #include "Textures.h"
 #include "Algorithms.h"
+#include "Text.h"
 
 namespace Xroads
 {
