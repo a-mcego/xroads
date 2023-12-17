@@ -24,7 +24,6 @@ namespace Xroads
         void clear() { v.clear(); }
         void push_back(const T& thing) { v.push_back(thing); }
 
-
         Vector() = default;
         Vector(int size, const T& val)
         { v = vector<T>(size, val); }
@@ -42,11 +41,11 @@ namespace Xroads
             return v[n];
         }
 
-        int Sum()
+        T Sum()
         {
-            int sum=0;
-            for(int i=0; i<v.size(); ++i)
-                sum += v.at(i);
+            T sum=0;
+            for(size_t i=0; i<v.size(); ++i)
+                sum += v[i];
             return sum;
         }
     };
