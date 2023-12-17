@@ -68,5 +68,6 @@ namespace Xroads
     void SelfTest();
 }
 
-namespace Xr = Xroads; //comment out if the short name conflicts with something
-
+#ifndef XROADS_NO_ABBREVIATION
+namespace Xr = Xroads;
+#endif

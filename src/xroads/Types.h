@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(__STDCPP_BFLOAT16_T__)
-//#define XROADS_BFLOAT16
+#define XROADS_BFLOAT16
 #endif // defined
 
 #include <cstdint>

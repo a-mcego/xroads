@@ -59,11 +59,10 @@ namespace Xroads
     { return ColorType<T>{lhs.r-rhs.r, lhs.g-rhs.g, lhs.b-rhs.b, lhs.a-rhs.a}; }
 
     using Color = ColorType<f32>;
-    using Color_bf = ColorType<bf16>;
-
     const Color COLOR_WHITE = Color{1.0f,1.0f,1.0f,1.0f};
     const Color COLOR_BLACK = Color{0.0f,0.0f,0.0f,1.0f};
 #if defined(XROADS_BFLOAT16)
+    using Color_bf = ColorType<bf16>;
     const Color_bf COLOR_BF_WHITE = Color_bf{1.0bf16,1.0bf16,1.0bf16,1.0bf16};
     const Color_bf COLOR_BF_BLACK = Color_bf{0.0bf16,0.0bf16,0.0bf16,1.0bf16};
 #else
