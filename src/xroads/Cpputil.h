@@ -64,12 +64,13 @@ namespace Xroads
     template<typename T> using MaxValue = BestValue<T,std::greater<T>>;
     template<typename T> using MinValue = BestValue<T,std::less<T>>;
 
+    template<typename T>
     struct MinMaxCoord
     {
-        MaxValue<f32> maxx, maxy;
-        MinValue<f32> minx, miny;
+        MaxValue<T> maxx, maxy;
+        MinValue<T> minx, miny;
 
-        void Add(const Coord2D<f32>& f)
+        void Add(const Coord2D<T>& f)
         {
             maxx.Set(f.x);
             minx.Set(f.x);
