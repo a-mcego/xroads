@@ -24,22 +24,35 @@ namespace Xroads
     template<typename T>
     inline ColorType<T> operator*(const ColorType<T>& lhs, const ColorType<T>& rhs)
     { return ColorType<T>{lhs.r*rhs.r, lhs.g*rhs.g, lhs.b*rhs.b, lhs.a*rhs.a}; }
-
     template<typename T>
     inline ColorType<T> operator*(const ColorType<T>& lhs, f32 rhs)
     { return ColorType<T>{T(f32(lhs.r)*rhs), T(f32(lhs.g)*rhs), T(f32(lhs.b)*rhs), T(f32(lhs.a)*rhs)}; }
-
     template<typename T>
     inline ColorType<T>& operator*=(ColorType<T>& lhs, const ColorType<T>& rhs)
     { lhs.r*=rhs.r; lhs.g*=rhs.g; lhs.b*=rhs.b; lhs.a*=rhs.a; return lhs; }
-
     template<typename T>
     inline ColorType<T>& operator*=(ColorType<T>& lhs, f32 rhs)
     { lhs.r*=rhs; lhs.g*=rhs; lhs.b*=rhs; lhs.a*=rhs; return lhs; }
 
     template<typename T>
+    inline ColorType<T> operator/(const ColorType<T>& lhs, const ColorType<T>& rhs)
+    { return ColorType<T>{lhs.r/rhs.r, lhs.g/rhs.g, lhs.b/rhs.b, lhs.a/rhs.a}; }
+    template<typename T>
+    inline ColorType<T> operator/(const ColorType<T>& lhs, f32 rhs)
+    { return ColorType<T>{T(f32(lhs.r)/rhs), T(f32(lhs.g)/rhs), T(f32(lhs.b)/rhs), T(f32(lhs.a)/rhs)}; }
+    template<typename T>
+    inline ColorType<T>& operator/=(ColorType<T>& lhs, const ColorType<T>& rhs)
+    { lhs.r/=rhs.r; lhs.g/=rhs.g; lhs.b/=rhs.b; lhs.a/=rhs.a; return lhs; }
+    template<typename T>
+    inline ColorType<T>& operator/=(ColorType<T>& lhs, f32 rhs)
+    { lhs.r/=rhs; lhs.g/=rhs; lhs.b/=rhs; lhs.a/=rhs; return lhs; }
+
+    template<typename T>
     inline ColorType<T> operator+(const ColorType<T>& lhs, const ColorType<T>& rhs)
     { return ColorType<T>{lhs.r+rhs.r, lhs.g+rhs.g, lhs.b+rhs.b, lhs.a+rhs.a}; }
+    template<typename T>
+    inline ColorType<T>& operator+=(ColorType<T>& lhs, const ColorType<T>& rhs)
+    { lhs.r+=rhs.r; lhs.g+=rhs.g; lhs.b+=rhs.b; lhs.a+=rhs.a; return lhs; }
 
     template<typename T>
     inline ColorType<T> operator-(const ColorType<T>& lhs, const ColorType<T>& rhs)
