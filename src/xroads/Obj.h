@@ -80,9 +80,9 @@ namespace Xroads
                     float biggest_extent=0.0f;
                     for(auto& v: vertices)
                     {
-                        biggest_extent = std::max(biggest_extent,v.x);
-                        biggest_extent = std::max(biggest_extent,v.y);
-                        biggest_extent = std::max(biggest_extent,v.z);
+                        biggest_extent = std::max(biggest_extent,std::abs(v.x));
+                        biggest_extent = std::max(biggest_extent,std::abs(v.y));
+                        biggest_extent = std::max(biggest_extent,std::abs(v.z));
                     }
 
                     int n_triangles = params.size()-3;
