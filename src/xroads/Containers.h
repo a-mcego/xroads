@@ -62,16 +62,16 @@ namespace Xroads
             data.assign(dims.x*dims.y, t);
         }
 
-        auto X() { return dims.x; }
-        auto Y() { return dims.y; }
-        auto size() { return dims; }
+        auto X() const { return dims.x; }
+        auto Y() const { return dims.y; }
+        auto size() const { return dims; }
 
         auto begin() { return data.begin(); }
         auto end() { return data.end(); }
         auto cbegin() const { return data.cbegin(); }
         auto cend() const { return data.cend(); }
 
-        void AssertBounds(int x, int y)
+        void AssertBounds(int x, int y) const
         {
             if (!in_bounds(x,y))
             {
