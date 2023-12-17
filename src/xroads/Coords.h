@@ -139,7 +139,7 @@ namespace Xroads
         {
             auto len = LengthSq();
             if (len == 0.0f)
-                return Coord3D{0.0f,0.0f,1.0f};
+                return Coord3D{1.0f,0.0f,0.0f};
             Coord3D t = *this;
             return t / sqrt(len);
         }
