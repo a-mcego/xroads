@@ -141,6 +141,26 @@ namespace Xroads
         return v;
     }
 
+
+    inline const std::vector<std::string> ExplodeCopy(std::string s, const char& c)
+    {
+        std::vector<std::string> v;
+
+        size_t start=0, len=0;//, i=0;
+        for(auto n:s)
+        {
+            ++len;
+            if(n == c)
+            {
+                v.push_back(s.substr(start, len-1));
+                start += len;
+                len = 0;
+            }
+        }
+        v.push_back(s.substr(start));
+        return v;
+    }
+
     template<typename T>
     T FromString(std::string_view key)
     {
