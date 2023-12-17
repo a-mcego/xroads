@@ -37,7 +37,6 @@ namespace Xroads
             std::vector<C2> UVs;
 
             std::ifstream objfile(objdir+"/"+objname+".obj");
-            Log("Loading obj model! "+(objdir+"/"+objname+".obj"));;
             while(true)
             {
                 std::string line;
@@ -100,17 +99,17 @@ namespace Xroads
                             auto vert_info = Explode(params.at(tri_indices.at(tri_i)), '/');
                             i32 vert_id = FromString<i32>(vert_info.at(0))-1; //-1 because .obj is 1-based indexing
 
-                            uv_id = FromString<i32>(vert_info[1])-1; //-1 because .obj is 1-based indexing
+                            uv_id = FromString<i32>(vert_info.at(1))-1; //-1 because .obj is 1-based indexing
                             //vert_info[2] has normals but we don't need them
-                            tri.points[tri_i] = vertices.at(vert_id)/biggest_extent*0.5f;
-                            uvback.push_back(UVs[uv_id]);
+                            tri.points.at(tri_i) = vertices.at(vert_id)/biggest_extent*0.5f;
+                            uvback.push_back(UVs.at(uv_id));
                         }
 
-                        std::swap(uvback[1],uvback[2]);
+                        std::swap(uvback.at(1),uvback.at(2));
 
                         Color objcolor{1.0f,1.0f,1.0f};
 
-                        if (uvback[1].y < 0.2f)
+                        if (uvback.at(1).y < 0.2f)
                             objcolor *= 2.5f;
 
                         objmodel.colors.push_back(objcolor);//color_indices[uv_id]);
