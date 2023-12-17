@@ -43,6 +43,17 @@ namespace Xroads
         return Random()%(high-low+1)+low;
     }
 
+    u32 RandomWithout(u32 low, u32 high, u32 without)
+    {
+        if (low <= without && without <= high)
+        {
+            u32 ret = Random(low, high-1);
+            ret += u32(ret >= without);
+            return ret;
+        }
+        return Random(low,high);
+    }
+
     double RandomDouble()
     {
         return Random()*2.3283064365386962890625e-10;

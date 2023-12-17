@@ -10,6 +10,7 @@ namespace Xroads
     void SeedRandom(u32 n);
     u32 Random();
     u32 Random(u32 low, u32 high); //range inclusive
+    u32 RandomWithout(u32 low, u32 high, u32 without); //without "without"
     f64 RandomDouble();
     f64 RandomDouble(f64 low, f64 high);
     f32 RandomFloat();
