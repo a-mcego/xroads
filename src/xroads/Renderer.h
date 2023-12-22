@@ -934,7 +934,9 @@ namespace Xroads
 
             for (int i=0; i<2; ++i)
             {
+                glDeleteFramebuffers(1, &pingpong[i].FBO);
                 glGenFramebuffers(1, &pingpong[i].FBO);
+                glDeleteTextures(1, &pingpong[i].buffer);
                 glGenTextures(1, &pingpong[i].buffer);
 
                 glBindFramebuffer(GL_FRAMEBUFFER, pingpong[i].FBO);
@@ -953,10 +955,12 @@ namespace Xroads
                 );
             }
 
+            glDeleteFramebuffers(1, &gBuffer);
             glGenFramebuffers(1, &gBuffer);
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 
             // - position color buffer
+            glDeleteTextures(1, &gPosition);
             glGenTextures(1, &gPosition);
             glBindTexture(GL_TEXTURE_2D, gPosition);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -965,6 +969,7 @@ namespace Xroads
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
 
             // - normal color buffer
+            glDeleteTextures(1, &gNormal);
             glGenTextures(1, &gNormal);
             glBindTexture(GL_TEXTURE_2D, gNormal);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, current_resolution.x, current_resolution.y, 0, GL_RGB, GL_FLOAT, NULL);
@@ -975,6 +980,7 @@ namespace Xroads
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
 
             // - color + specular color buffer
+            glDeleteTextures(1, &gAlbedoSpec);
             glGenTextures(1, &gAlbedoSpec);
             glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -984,6 +990,7 @@ namespace Xroads
             glDrawBuffers(3, attachments);
 
             // create and attach depth buffer (renderbuffer)
+            glDeleteRenderbuffers(1, &rboDepth);
             glGenRenderbuffers(1, &rboDepth);
             glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, current_resolution.x, current_resolution.y);
@@ -992,10 +999,12 @@ namespace Xroads
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                 Kill("Framebuffer 1 not complete!");
 
+            glDeleteFramebuffers(1, &fbLighting);
             glGenFramebuffers(1, &fbLighting);
             glBindFramebuffer(GL_FRAMEBUFFER, fbLighting);
 
             // - lighting buffer
+            glDeleteTextures(1, &gLighting);
             glGenTextures(1, &gLighting);
             glBindTexture(GL_TEXTURE_2D, gLighting);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x/options.GetLightDivisor(), current_resolution.y/options.GetLightDivisor(), 0, GL_RGBA, GL_FLOAT, NULL);
@@ -1006,11 +1015,13 @@ namespace Xroads
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                 Kill("Framebuffer 2 not complete!");
 
+            glDeleteFramebuffers(1, &fbSecond);
             glGenFramebuffers(1, &fbSecond);
             glBindFramebuffer(GL_FRAMEBUFFER, fbSecond);
             glDrawBuffers(2, attachments);
 
             // - bright color buffer
+            glDeleteTextures(1, &gBright);
             glGenTextures(1, &gBright);
             glBindTexture(GL_TEXTURE_2D, gBright);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -1021,6 +1032,7 @@ namespace Xroads
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gBright, 0);
 
             // - normie color buffer
+            glDeleteTextures(1, &gNormalOut);
             glGenTextures(1, &gNormalOut);
             glBindTexture(GL_TEXTURE_2D, gNormalOut);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, current_resolution.x, current_resolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
