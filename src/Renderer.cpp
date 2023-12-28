@@ -92,10 +92,13 @@ namespace Xroads
         glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, x, y, 0, gl_format, GL_UNSIGNED_BYTE, data_ptr);
         stbi_image_free(data_ptr);
 
-        if (name == "_mainfont_scifi" || name == "_mainfont")
+        if (name == "_mainfont_scifi" || name == "mainfont")
         {
+            glGenerateMipmap(GL_TEXTURE_2D);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -1.7f);
         }
         else
         {
