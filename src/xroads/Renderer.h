@@ -735,7 +735,7 @@ namespace Xroads
             Uniform(deferred_program_id, "fog_attributes", options.fog_color.r, options.fog_color.g, options.fog_color.b, options.fog_intensity);
             Uniform(deferred_program_id, "normal_smoothing_n", options.normal_smoothing_n);
             Uniform(deferred_program_id, "occlusion_n", options.occlusion_n);
-
+            Uniform(deferred_program_id, "inv_texsize", 1.0f/f32(current_resolution.x/options.GetLightDivisor()), 1.0f/f32(current_resolution.y/options.GetLightDivisor()));
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, gPosition);
             glActiveTexture(GL_TEXTURE1);
