@@ -56,6 +56,7 @@ namespace Xroads
             Log("Texture "+imagepath+" not found");
             return -1;
         }
+        fclose(fp);
 
         int x{},y{},n{};
         unsigned char* data_ptr = stbi_load(imagepath.c_str(), &x, &y, &n, 0);
