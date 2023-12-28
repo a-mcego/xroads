@@ -101,10 +101,32 @@ namespace Xroads
             ++len;
             return data_internal+len;
         }
+
+        constexpr bool startswith(std::string_view v)
+        {
+            if (len < v.size())
+                return false;
+            for(int i=0; i<v.size(); ++i)
+                if (v[i] != data_internal[i])
+                    return false;
+            return true;
+        }
     };
 
     using Sm16 = SmallString<16>;
     using Sm32 = SmallString<32>;
+
+    template<size_t size, typename T>
+    inline SmallString<size> ToSm(const T& str)
+    {
+        return SmallString<size>(std::string_view(str));
+    }
+
+    template<typename T>
+    inline Sm32 ToSm32(const T& str)
+    {
+        return Sm32(std::string_view(str));
+    }
 
     template<size_t SIZE, typename STRINGVIEW>
     inline SmallString<SIZE> operator+(const STRINGVIEW& lhs, const SmallString<SIZE>& rhs)
@@ -203,6 +225,12 @@ namespace Xroads
             return lhs < rhs;
         }
     };
+
+    template<size_t N>
+    std::ostream& operator<<(std::ostream& o, const SmallString<N>& t)
+    {
+        return o << t.view();
+    }
 }
 
 namespace std

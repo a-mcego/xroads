@@ -15,14 +15,24 @@ namespace Xroads
     template<typename T>
     struct Vector
     {
+        using value_type = T;
         std::vector<T> v;
 
         auto begin() { return v.begin(); }
         auto end() { return v.end(); }
-        auto size() { return v.size(); }
-        auto empty() { return v.empty(); }
+        auto begin() const { return v.begin(); }
+        auto end() const { return v.end(); }
+        auto cbegin() const { return v.cbegin(); }
+        auto cend() const { return v.cend(); }
+        auto size() const { return v.size(); }
+        auto empty() const { return v.empty(); }
         void clear() { v.clear(); }
         void push_back(const T& thing) { v.push_back(thing); }
+
+        T& front() { return at(0); }
+        const T& front() const { return at(0); }
+        T& back() { return at(size()-1); }
+        const T& back() const { return at(size()-1); }
 
         Vector() = default;
         Vector(int size, const T& val)
@@ -30,6 +40,10 @@ namespace Xroads
 
         template<typename INDEXTYPE> requires std::same_as<int,INDEXTYPE>
         T& operator[](INDEXTYPE n) { return at<INDEXTYPE>(n); }
+
+        template<typename INDEXTYPE> requires std::same_as<int,INDEXTYPE>
+        const T& operator[](INDEXTYPE n) const { return at<INDEXTYPE>(n); }
+
         template<typename INDEXTYPE> requires std::same_as<int,INDEXTYPE>
         T& at(INDEXTYPE n)
         {
@@ -40,8 +54,18 @@ namespace Xroads
             }
             return v[n];
         }
+        template<typename INDEXTYPE> requires std::same_as<int,INDEXTYPE>
+        const T& at(INDEXTYPE n) const
+        {
+            if (n < 0 || n >= size())
+            {
+                Log("Invalid access with index " + ToString(n) + ", size " + ToString(size()));
+                Kill("");
+            }
+            return v[n];
+        }
 
-        T Sum()
+        T Sum() const
         {
             T sum=0;
             for(size_t i=0; i<v.size(); ++i)
