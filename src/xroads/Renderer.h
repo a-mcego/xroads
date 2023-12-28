@@ -104,10 +104,11 @@ namespace Xroads
             ACTOR,
             HEALTHBAR,
             GUI,
+            GUITEXT,
             N
         };
 
-        static constexpr CAMERA STAGE_TO_CAMERA[i32(STAGE::N)] = {CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::ORTHO};
+        static constexpr CAMERA STAGE_TO_CAMERA[i32(STAGE::N)] = {CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::PERSPECTIVE, CAMERA::ORTHO, CAMERA::ORTHO};
 
         struct RenderList
         {
