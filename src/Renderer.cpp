@@ -53,7 +53,7 @@ namespace Xroads
         FILE* fp = fopen(imagepath.c_str(), "rb");
         if (fp == NULL)
         {
-            Log("Texture "+imagepath+" not found");
+            //Log("Texture "+imagepath+" not found");
             return -1;
         }
         fclose(fp);
