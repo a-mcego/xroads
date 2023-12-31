@@ -1,5 +1,15 @@
 # xroads
-C++23 utility classes for developing a game engine. To use, add all .cpp files from the src/ directory to your project. The rendering parts require GLFW and OpenGL.
+C++23 utility classes for developing a game engine. To use, add all .cpp files from the src/ directory to your project. It is currently only tested with msys2/MinGW64.
+
+## Dependencies
+
+glfw - Window creation and input handling
+
+glad - OpenGL bindings
+
+soloud - Sound
+
+dwarfstack - For human-readable stacktraces
 
 ## Coding standards
 
