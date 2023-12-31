@@ -1,5 +1,8 @@
 #pragma once
 
+#include "GlIncludes.h"
+#include "Coords.h"
+
 namespace Xroads
 {
     struct TextureDef

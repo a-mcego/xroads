@@ -33,4 +33,19 @@ namespace Xroads
         fclose(filu);
         return ret;
     }
+
+    struct Files
+    {
+        std::wstring save_path; //includes trailing backslash
+        void Init();
+        void Quit();
+
+        bool FileExists(std::wstring filename);
+
+        std::wstring GetFullPath(std::wstring filename);
+
+        std::vector<std::byte> ReadTextFile(std::wstring filename);
+        void WriteTextFile(std::wstring filename, std::vector<std::byte> contents);
+        void DeleteFile(std::wstring filename);
+    };
 }

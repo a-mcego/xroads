@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cmath>
+#include <array>
+#include <iostream>
 #include "Mathutil.h"
 
 namespace Xroads

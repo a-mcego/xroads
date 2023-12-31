@@ -1,10 +1,8 @@
-#include "Global.h"
-#include "xroads/Textures.h"
-#include "Screen.h"
+#include "xroads/Xroads.h"
 
 namespace Xroads
 {
-    VectorMap<string, u32> Textures::textures;
+    VectorMap<std::string, u32> Textures::textures;
 
     bool Textures::Has(std::string_view name)
     {
@@ -35,7 +33,7 @@ namespace Xroads
 
     void Textures::Load(std::string_view name, WRAP wrap)
     {
-        u32 textureID = Renderer::LoadTexture(name, wrap);
+        u32 textureID = GetEngine().renderer.LoadTexture(name, wrap);
         if (textureID == -1)
             return;
         textures[name] = textureID;
@@ -57,4 +55,3 @@ namespace Xroads
         textures.clear();
     }
 }
-

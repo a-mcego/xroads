@@ -1,5 +1,5 @@
-#include "Global.h"
 #include "xroads/Renderer.h"
+
 #include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -7,34 +7,6 @@
 
 namespace Xroads
 {
-
-    GLuint Renderer::vertexarray_id;
-    GLuint Renderer::vertexbuffer_id;
-    i64 Renderer::trianglecount = 0;
-    int Renderer::searches = 0;
-    int Renderer::getvecs = 0;
-    //int Renderer::n_lights_last_frame = 0;
-    Renderer::Options Renderer::options{};
-    CENTERING Renderer::current_centering = CENTERING::XYZ;
-    //std::vector<std::string> Renderer::light_uniform_names;
-
-    std::array<std::vector<Renderer::RenderList>,int(Renderer::STAGE::N)> Renderer::renderlists;
-    //std::array<std::vector<Renderer::LightDef>,3> Renderer::lights;
-
-    std::map<ModelID, Renderer::ModelQueueData> Renderer::modelqueue, Renderer::modelqueueUI, Renderer::modelqueue_lightvolume;
-    std::array<glm::mat4,int(Renderer::CAMERA::N)> Renderer::Vs, Renderer::Ps;
-    std::array<C3,int(Renderer::CAMERA::N)> Renderer::Vs_normal;
-    GLuint Renderer::modelVBO[2];
-
-    std::vector<Renderer::Model> Renderer::models;
-    std::map<std::string, ModelID, StringLessThan> Renderer::model_ids;
-
-    GLuint Renderer::gBuffer{}, Renderer::gPosition{}, Renderer::gNormal{}, Renderer::gAlbedoSpec{}, Renderer::gColorSpec{}, Renderer::rboDepth{}, Renderer::gBright{}, Renderer::gNormalOut{}, Renderer::gLighting;
-    GLuint Renderer::quadVAO{}, Renderer::quadVBO{}, Renderer::fbSecond{}, Renderer::fbLighting{};
-    Renderer::FBTex Renderer::pingpong[2];
-
-    C2i Renderer::current_resolution{1,1};
-
     void Renderer::QueueLight(const C3& pos, const Color& color, f32 intensity)
     {
         //lights.at(priority).push_back({pos, color*2.0f, intensity});

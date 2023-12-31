@@ -3,6 +3,8 @@
 #include <array>
 
 #include "xroads/Shapes.h"
+#include "xroads/Color.h"
+#include "xroads/FileUtil.h"
 
 namespace Xroads
 {
@@ -64,7 +66,6 @@ namespace Xroads
     {
         XY, XYZ
     };
-
 
     inline Color ToColorNoColorSpace(u32 color)
     {

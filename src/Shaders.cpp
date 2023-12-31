@@ -1,6 +1,4 @@
-#include "Global.h"
-#include "xroads/Shaders.h"
-#include "xroads/Renderer.h"
+#include "xroads/Xroads.h"
 
 namespace Xroads
 {
@@ -30,7 +28,7 @@ namespace Xroads
 
     void Shaders::LoadShaders(std::string_view name)
     {
-        shaders[name] = Renderer::LoadShader(name);
+        shaders[name] = GetEngine().renderer.LoadShader(name);
     }
 
     void Shaders::UnloadAll()

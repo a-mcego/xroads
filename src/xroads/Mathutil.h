@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Types.h"
+
 namespace Xroads
 {
     template<typename T> T Min(const T& a, const T& b) { return (a<b?a:b); }

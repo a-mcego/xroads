@@ -1,2 +1,8 @@
-integrate soloud into xroads, change the x y z parameters to Xr::C3
+#make "Renderer" not a static class
+#integrate soloud into xroads, change the x y z parameters to Xr::C3
+#move Input handling to xroads
+#make "Engine" singleton object
+#move Screen to xroads
 integrate glm better, make it use Xr::C3 too.
+automatic test: for every .h, just include that .h and make sure it compiles
+refactor Fileutil.h so that there's a unified interface for reading files. it should be possible to specify whether we're reading a user file or a game file

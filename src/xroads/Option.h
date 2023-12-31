@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Kill.h"
+
 namespace Xroads
 {
     template<typename T>

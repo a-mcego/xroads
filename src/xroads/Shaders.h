@@ -1,5 +1,10 @@
 #pragma once
 
+#include "xroads/Containers.h"
+
+#include <string>
+#include <string_view>
+
 namespace Xroads
 {
     struct Shaders

@@ -1,13 +1,16 @@
 #pragma once
 
-#include "Shapes.h"
+#include "xroads/Shapes.h"
+#include "xroads/Textures.h"
+#include "xroads/Shaders.h"
+#include "xroads/Strutil.h"
+#include "xroads/Vox.h"
+#include "xroads/Obj.h"
+#include "xroads/GlIncludes.h"
+#include "xroads/XrAssert.h"
+
 #include <unordered_map>
 #include <map>
-#include "Textures.h"
-#include "Shaders.h"
-#include "Strutil.h"
-#include "Vox.h"
-#include "Obj.h"
 
 namespace Xroads
 {
@@ -116,35 +119,26 @@ namespace Xroads
             std::vector<Vertex> vertices;
         };
 
-        static std::array<std::vector<RenderList>,i32(STAGE::N)> renderlists;
+        std::array<std::vector<RenderList>,i32(STAGE::N)> renderlists{};
 
-        /*struct LightDef
-        {
-            C3 pos;
-            Color color;
-            f32 intensity{};
-        };*/
-        //static i32 n_lights_last_frame;
-        //static std::array<std::vector<LightDef>,3> lights;
-        static void QueueLight(const C3& pos, const Color& color, f32 intensity);
-        static void Flash(Color color, f32 amount)
+        void QueueLight(const C3& pos, const Color& color, f32 intensity);
+        void Flash(Color color, f32 amount)
         {
             options.flash_color = color;
             options.flash_amount = amount;
         }
 
-        static i64 trianglecount;
-        static i32 searches, getvecs;
+        i64 trianglecount{};
+        i32 searches{}, getvecs{};
 
         static const u32 MAX_VERTICES_PER_FRAME = (1<<20);
 
-        static GLuint vertexarray_id, vertexbuffer_id;
+        GLuint vertexarray_id{}, vertexbuffer_id{};
 
-        static std::array<glm::mat4,i32(CAMERA::N)> Vs, Ps; //transforms for each camera
-        static std::array<C3,i32(CAMERA::N)> Vs_normal;
+        std::array<glm::mat4,i32(CAMERA::N)> Vs{}, Ps{}; //transforms for each camera
+        std::array<C3,i32(CAMERA::N)> Vs_normal{};
 
-        static C2i current_resolution;
-
+        C2i current_resolution{1,1};
 
         struct Model
         {
@@ -213,12 +207,12 @@ namespace Xroads
             }
         };
 
-        static std::vector<Model> models;
-        static std::map<std::string, ModelID, StringLessThan> model_ids;
+        std::vector<Model> models{};
+        std::map<std::string, ModelID, StringLessThan> model_ids{};
 
-        static CENTERING current_centering;
+        CENTERING current_centering{CENTERING::XYZ};
 
-        static ModelID GetModelID(std::string_view modelname_view, const GLuint texture_id)
+        ModelID GetModelID(std::string_view modelname_view, const GLuint texture_id)
         {
             if (auto iter = model_ids.find(modelname_view); iter!=model_ids.end())
                 return iter->second;
@@ -253,22 +247,22 @@ namespace Xroads
             }
         };
 
-        static std::map<ModelID, ModelQueueData> modelqueue, modelqueueUI, modelqueue_lightvolume;
+        std::map<ModelID, ModelQueueData> modelqueue, modelqueueUI, modelqueue_lightvolume{};
 
-        static void QueueModel(std::map<ModelID, ModelQueueData>& mqd_origin, std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+        void QueueModel(std::map<ModelID, ModelQueueData>& mqd_origin, std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
         {
             auto& mqd = mqd_origin[GetModelID(modelname, texture_id)];
             mqd.colors.push_back(color);
             mqd.matrices.push_back(M_matrix);
         }
-        static void Queue(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+        void Queue(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
         {
             QueueModel(modelqueue,modelname,texture_id,M_matrix,color);
             //auto& mqd = modelqueue[GetModelID(modelname, texture_id)];
             //mqd.colors.push_back(color);
             //mqd.matrices.push_back(M_matrix);
         }
-        static void QueueUI(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
+         void QueueUI(std::string_view modelname, const GLuint texture_id, const glm::mat4& M_matrix, const Color& color)
         {
             QueueModel(modelqueueUI,modelname,texture_id,M_matrix,color);
             //auto& mqd = modelqueueUI[GetModelID(modelname, texture_id)];
@@ -276,7 +270,7 @@ namespace Xroads
             //mqd.matrices.push_back(M_matrix);
         }
 
-        static void ChangeBuffer(int buffer_id)
+        void ChangeBuffer(int buffer_id)
         {
             glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(0 * sizeof(f32)));
@@ -287,7 +281,7 @@ namespace Xroads
 
         //static std::vector<std::string> light_uniform_names;
 
-        static void Init()
+        void Init()
         {
             glGenVertexArrays(1, &quadVAO);
             glGenVertexArrays(1, &vertexarray_id);
@@ -334,22 +328,22 @@ namespace Xroads
             }*/
         }
 
-        static void SetV(CAMERA camera, const glm::mat4& mat, const C3& normal)
+        void SetV(CAMERA camera, const glm::mat4& mat, const C3& normal)
         {
             Vs_normal[i32(camera)] = normal;
             Vs[i32(camera)] = mat;
         }
-        static void SetP(CAMERA camera, const glm::mat4& mat)
+        void SetP(CAMERA camera, const glm::mat4& mat)
         {
             Ps[i32(camera)] = mat;
         }
 
-        static void Quit()
+        void Quit()
         {
             glDeleteVertexArrays(1, &vertexarray_id);
         }
 
-        static std::vector<Vertex>& GetVec(STAGE stage, GLuint texture, GLuint texture2, GLuint shader)
+        std::vector<Vertex>& GetVec(STAGE stage, GLuint texture, GLuint texture2, GLuint shader)
         {
             getvecs += 1;
             auto& stage_lists = renderlists[i32(stage)];
@@ -368,7 +362,7 @@ namespace Xroads
             return stage_lists.back().vertices;
         }
 
-        static void Queue(const IsShape auto& quad, const C3& normal, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
+        void Queue(const IsShape auto& quad, const C3& normal, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
         {
             auto verts = quad.GetVertices(texturedef);
             //auto camnormal = Vs_normal[int(STAGE_TO_CAMERA[int(stage)])];
@@ -381,7 +375,7 @@ namespace Xroads
             }
         }
 
-        static void Queue(const IsShape auto& quad, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
+        void Queue(const IsShape auto& quad, const Color& color, const TextureDef& texturedef, GLuint shader_id, STAGE stage)
         {
             auto verts = quad.GetVertices(texturedef);
 
@@ -398,7 +392,7 @@ namespace Xroads
         }
 
         template<typename... Ts>
-        static void Uniform(GLuint shader_id, std::string_view name, Ts... data) //OBS: make sure *name* is null-terminated!
+        void Uniform(GLuint shader_id, std::string_view name, Ts... data) //OBS: make sure *name* is null-terminated!
         {
             constexpr int SIZE = sizeof...(Ts);
             static_assert(AllSameType<Ts...>, "uniform operands should be the same type");
@@ -483,19 +477,19 @@ namespace Xroads
                     ret += "#define LIGHTING_HIGH\n";
                 return ret;
             }
-        } static options;
+        } options{};
 
 
-        static void Aberration(float param) { options.aberration = param; }
+        void Aberration(float param) { options.aberration = param; }
         struct FBTex
         {
             GLuint FBO{}, buffer{};
         };
 
-        static FBTex pingpong[2];
-        static GLuint gBuffer, gPosition, gNormal, gColorSpec, rboDepth, gAlbedoSpec, gBright, gNormalOut, gLighting, fbSecond, fbLighting;
-        static GLuint modelVBO[2];
-        static void Render()
+        FBTex pingpong[2] = {};
+        GLuint gBuffer{}, gPosition{}, gNormal{}, gColorSpec{}, rboDepth{}, gAlbedoSpec{}, gBright{}, gNormalOut{}, gLighting{}, fbSecond{}, fbLighting{};
+        GLuint modelVBO[2] = {};
+        void Render()
         {
             /*auto GetLightAmount = []()->int
             {
@@ -917,14 +911,14 @@ namespace Xroads
             }*/
         }
 
-        static GLuint quadVAO, quadVBO;
-        static void renderQuad()
+        GLuint quadVAO{}, quadVBO{};
+        void renderQuad()
         {
             glBindVertexArray(quadVAO);
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
 
-        static void ResolutionChange(const C2i& new_resolution)
+        void ResolutionChange(const C2i& new_resolution)
         {
             current_resolution = new_resolution;
             //glfwGetFramebufferSize(glfw_window, &display_x, &display_y);
@@ -1047,7 +1041,7 @@ namespace Xroads
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        static u32 LoadShader(std::string_view name);
-        static u32 LoadTexture(std::string_view name, WRAP wrap);
+        u32 LoadShader(std::string_view name);
+        u32 LoadTexture(std::string_view name, WRAP wrap);
     };
 }
