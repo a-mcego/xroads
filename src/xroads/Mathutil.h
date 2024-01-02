@@ -63,6 +63,29 @@ namespace Xroads
     };
 
     template<typename T>
+    struct TargetValue
+    {
+        f32 damping{};
+        T target{};
+        T current_value{};
+
+        void Update()
+        {
+            current_value = target*(1.0f-damping)+current_value*damping;
+        }
+
+        T Get()
+        {
+            return current_value;
+        }
+        void Reset() { target = T{}; }
+
+        TargetValue& operator+=(const T& t) { target += t; return *this; }
+        TargetValue& operator-=(const T& t) { target -= t; return *this; }
+    };
+
+
+    template<typename T>
     T FastCos(T input)
     {
         return std::cos(input);
