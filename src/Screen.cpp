@@ -18,7 +18,19 @@ namespace Xroads
     }
     void window_focus_callback([[maybe_unused]] GLFWwindow* window, int focused)
     {
-        //app.FocusCallback(focused); //TODO: move sound/music volume to appstate. then move focus callback to the engine.
+        Xr::GetEngine().appstate.has_focus = focused;
+        if (focused)
+        {
+            Xr::GetEngine().sound.SetSoundVolume(Xr::GetEngine().appstate.sound_volume.Get());
+            Xr::GetEngine().sound.SetMusicVolume(Xr::GetEngine().appstate.music_volume.Get());
+        }
+        else
+        {
+            Xr::GetEngine().sound.SetSoundVolume(0);
+            Xr::GetEngine().sound.SetMusicVolume(0);
+            if (Xr::GetEngine().appstate.state == "INGAME"_sm)
+                Xr::GetEngine().appstate.state = "INGAME_PAUSE"_sm;
+        }
     }
 
     void APIENTRY glDebugOutput(GLenum source,
@@ -113,9 +125,8 @@ namespace Xroads
             glfwSetWindowFocusCallback(glfw_window, window_focus_callback);
             glfwMakeContextCurrent(glfw_window); // Initialize GLEW
 
-            //std::cout << "GLAD START" << std::endl;
             int result = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
-            //std::cout << "GLAD END " << result << std::endl;
+            //TODO: check result
 
             if (DEBUG_OPENGL)
             {

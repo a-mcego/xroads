@@ -15,6 +15,10 @@ namespace Xroads
         Sm32 state{"MENU_MAIN"_sm};
         int gamepad_id{-1};
         C2 cursorpos{}; //current mouse cursor position in the GUI coordinates
+        bool has_focus{true};
+
+        Tracked<int> sound_volume{10};
+        Tracked<int> music_volume{10};
 
         struct ButtonData
         {
