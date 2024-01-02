@@ -456,6 +456,7 @@ namespace Xroads
             f32 flash_amount{};
             Color flash_color{};
             i32 bloom_amount{0};
+            f32 saturation_mult{1.0f};
 
             int GetLightDivisor()
             {
@@ -814,6 +815,7 @@ namespace Xroads
                 Uniform(bf,"bloom",bloom);
                 Uniform(bf,"exposure",exposure);
                 Uniform(bf,"flash",options.flash_color.r,options.flash_color.g,options.flash_color.b,options.flash_amount);
+                Uniform(bf,"saturation_mult",options.saturation_mult);
                 glClear(GL_DEPTH_BUFFER_BIT);
                 renderQuad();
             }
