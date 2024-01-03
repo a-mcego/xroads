@@ -67,21 +67,6 @@ namespace Xroads
             DISABLED
         };
         float physical_Y, physical_X, logical_Y, logical_X;
-        C2 LogToPhysPos(const C2& p)
-        {
-            C2 ret;
-            ret.x = (p.x+logical_X)/(2.0*logical_X)*physical_X;
-            ret.y = (p.y+logical_Y)/(2.0*logical_Y)*physical_Y;
-            return ret;
-        }
-
-        C2 LogToPhysSize(const C2& p)
-        {
-            C2 ret;
-            ret.x = (p.x)/(2.0*logical_X)*physical_X;
-            ret.y = (p.y)/(2.0*logical_Y)*physical_Y;
-            return ret;
-        }
 
         void DrawPager(Browser& browser, GUIBUTTON button, C2 prevpos, C2 nextpos, C2 size)
         {
