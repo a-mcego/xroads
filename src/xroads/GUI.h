@@ -36,6 +36,15 @@ namespace Xroads
             start -= perpage;
             end -= perpage;
         }
+        void Message(int msg)
+        {
+            if (msg == 0)
+                Prev();
+            else if (msg == 1)
+                Next();
+            else
+                Kill("Browser got invalid message "+ToString(msg));
+        }
 
         int Start()
         {
