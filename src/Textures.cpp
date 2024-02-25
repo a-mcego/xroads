@@ -4,6 +4,18 @@ namespace Xroads
 {
     VectorMap<std::string, u32> Textures::textures;
 
+    C2i Textures::GetTextureSize(u32 id)
+    {
+        C2i size{};
+        int miplevel = 0;
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, miplevel, GL_TEXTURE_WIDTH, &size.x);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, miplevel, GL_TEXTURE_HEIGHT, &size.y);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        return size;
+    }
+
     bool Textures::Has(std::string_view name)
     {
         return textures.find(name) != textures.end();

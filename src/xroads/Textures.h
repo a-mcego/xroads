@@ -20,6 +20,7 @@ namespace Xroads
     public:
         static void Load(std::string_view name, WRAP wrap);
         static bool Has(std::string_view name);
+        static C2i GetTextureSize(u32 id);
         static u32 Get(std::string_view, WRAP wrap = WRAP::YES);
         static void UnloadAll();
 
